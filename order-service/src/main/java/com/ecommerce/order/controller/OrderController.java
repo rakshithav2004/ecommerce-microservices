@@ -4,6 +4,7 @@ import com.ecommerce.order.dto.OrderRequest;
 import com.ecommerce.order.dto.OrderResponse;
 import com.ecommerce.order.model.OrderStatus;
 import com.ecommerce.order.service.OrderService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -16,6 +17,10 @@ public class OrderController {
 
     private final OrderService orderService;
 
+    @Operation(
+            summary = "Create a new order",
+            description = "Places a new order for the given product and quantity, validating stock via product-service"
+    )
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public OrderResponse createOrder(
@@ -23,30 +28,44 @@ public class OrderController {
         return orderService.createOrder(request);
     }
 
+    @Operation(
+            summary = "Get order by ID",
+            description = "Retrieves an order using its unique order ID"
+    )
     @GetMapping("/{id}")
     public OrderResponse getOrderById(
             @PathVariable String id) {
         return orderService.getOrderById(id);
     }
 
+    @Operation(
+            summary = "Get order by order number",
+            description = "Retrieves an order using its unique order number"
+    )
     @GetMapping("/number/{orderNumber}")
     public OrderResponse getOrderByNumber(
             @PathVariable String orderNumber) {
         return orderService.getOrderByNumber(orderNumber);
     }
 
+    @Operation(
+            summary = "Cancel an order",
+            description = "Cancels an existing order using its unique order ID"
+    )
     @PostMapping("/{id}/cancel")
     public OrderResponse cancelOrder(
             @PathVariable String id) {
-
         return orderService.cancelOrder(id);
     }
 
+    @Operation(
+            summary = "Update order status",
+            description = "Updates the status of an existing order"
+    )
     @PutMapping("/{id}/status")
     public OrderResponse updateOrderStatus(
             @PathVariable String id,
             @RequestParam OrderStatus status) {
-
         return orderService.updateOrderStatus(
                 id,
                 status
