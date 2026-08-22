@@ -23,4 +23,28 @@ public class GlobalExceptionHandler {
                         "message", ex.getMessage()
                 ));
     }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalStateException( IllegalStateException exception) {
+        Map<String, Object> response = Map.of(
+                "timestamp", LocalDateTime.now(),
+                "status", 503,
+                "error", "Service Unavailable",
+                "message", exception.getMessage()
+        );
+        return ResponseEntity .status(HttpStatus.SERVICE_UNAVAILABLE) .body(response);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String, Object>> handleGeneralException(
+            Exception ex) {
+        return ResponseEntity
+                .status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(Map.of(
+                        "timestamp", LocalDateTime.now(),
+                        "status", 503,
+                        "error", "SERVICE_UNAVAILABLE",
+                        "message", "Product Service is currently unavailable. Please try again later."
+                ));
+    }
 }

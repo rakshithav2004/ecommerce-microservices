@@ -1,6 +1,5 @@
 package com.ecommerce.order.service;
 
-import com.ecommerce.order.client.ProductClient;
 import com.ecommerce.order.dto.OrderItemRequest;
 import com.ecommerce.order.dto.OrderItemResponse;
 import com.ecommerce.order.dto.OrderRequest;
@@ -25,7 +24,7 @@ import java.util.UUID;
 public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
-    private final ProductClient productClient;
+    private final ProductServiceClient productServiceClient;
 
     @Override
     public OrderResponse createOrder(OrderRequest request) {
@@ -36,10 +35,10 @@ public class OrderServiceImpl implements OrderService {
 
         for (OrderItemRequest itemRequest : request.items()) {
             ProductResponse product =
-                    productClient.getProductById(
+                    productServiceClient.getProductById(
                             itemRequest.productId()
                     );
-            productClient.reserveStock(
+            productServiceClient.reserveStock(
                     itemRequest.productId(),
                     itemRequest.quantity()
             );
@@ -62,7 +61,6 @@ public class OrderServiceImpl implements OrderService {
         }
 
         Order order = new Order();
-
         order.setOrderNumber(
                 "ORD-" + UUID.randomUUID()
         );
@@ -163,17 +161,15 @@ public class OrderServiceImpl implements OrderService {
         }
 
         for (OrderItem item : order.getItems()) {
-            productClient.releaseStock(
+            productServiceClient.releaseStock(
                     item.getProductId(),
                     item.getQuantity()
             );
         }
 
         order.setStatus(OrderStatus.CANCELLED);
-
         Order cancelledOrder =
                 orderRepository.save(order);
-
         return mapToResponse(cancelledOrder);
     }
 
@@ -181,7 +177,6 @@ public class OrderServiceImpl implements OrderService {
     public OrderResponse updateOrderStatus(
             String orderId,
             OrderStatus newStatus) {
-
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() ->
                         new OrderNotFoundException(
