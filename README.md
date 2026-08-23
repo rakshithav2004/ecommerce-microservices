@@ -45,7 +45,7 @@ The system is designed around independent services for product management and or
                 Gateway       Product        Order
                 Service       Service        Service
 ```
-
+![E-Commerce Microservices Architecture](architecture.png)
 ---
 
 ## ✨ Features
