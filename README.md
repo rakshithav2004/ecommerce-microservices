@@ -47,6 +47,28 @@ The system is designed around independent services for product management and or
 ```
 ![E-Commerce Microservices Architecture](architecture.png)
 ---
+## 📸 Screenshots
+
+### Eureka Service Registry
+
+Shows all microservices registered and running successfully.
+![Eureka Dashboard](screenshots/eureka-dashboard.png)
+
+### Product Service — Swagger
+
+Interactive Swagger documentation for Product Service APIs.
+![Product Swagger](screenshots/product-swagger.png)
+
+### Order Service — Swagger
+
+Interactive Swagger documentation for Order Service APIs.
+![Order Swagger](screenshots/order-swagger.png)
+
+### Create Order — Postman
+
+Successful order creation through the API Gateway.
+![Create Order](screenshots/create-order.png)
+---
 
 ## ✨ Features
 
