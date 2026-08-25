@@ -18,3 +18,7 @@ Thumbs.db
 
 # Environment files
 .env
+
+### Secrets ###
+application-secrets.properties
+**/application-secrets.properties
