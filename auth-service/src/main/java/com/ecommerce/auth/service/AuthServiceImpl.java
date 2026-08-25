@@ -23,7 +23,22 @@ public class AuthServiceImpl implements AuthService {
 
         if (userRepository.existsByEmail(request.email())) {
             throw new IllegalStateException(
-                    "User with email already exists: " + request.email()
+                    "User with email already exists: "
+                            + request.email()
+            );
+        }
+
+        String role = request.role();
+
+        if (role == null || role.isBlank()) {
+            role = "USER";
+        }
+
+        role = role.toUpperCase();
+
+        if (!role.equals("USER") && !role.equals("ADMIN")) {
+            throw new IllegalArgumentException(
+                    "Role must be USER or ADMIN"
             );
         }
 
@@ -33,7 +48,7 @@ public class AuthServiceImpl implements AuthService {
                 .password(
                         passwordEncoder.encode(request.password())
                 )
-                .role("USER")
+                .role(role)
                 .build();
 
         User savedUser = userRepository.save(user);
