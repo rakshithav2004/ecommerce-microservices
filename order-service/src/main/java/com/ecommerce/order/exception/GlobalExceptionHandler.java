@@ -25,6 +25,36 @@ public class GlobalExceptionHandler {
                 ));
     }
 
+    @ExceptionHandler(ProductServiceException.class)
+    public ResponseEntity<Map<String, Object>> handleProductServiceException(
+            ProductServiceException ex) {
+        HttpStatus status = HttpStatus.valueOf(ex.getStatus());
+        return ResponseEntity
+                .status(status)
+                .body(Map.of(
+                        "timestamp", LocalDateTime.now(),
+                        "status", status.value(),
+                        "error", status == HttpStatus.NOT_FOUND
+                                ? "PRODUCT_NOT_FOUND"
+                                : "PRODUCT_SERVICE_ERROR",
+                        "message", ex.getMessage()
+                ));
+    }
+
+    @ExceptionHandler(InsufficientStockException.class)
+    public ResponseEntity<Map<String, Object>> handleInsufficientStock(
+            InsufficientStockException ex) {
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(Map.of(
+                        "timestamp", LocalDateTime.now(),
+                        "status", HttpStatus.BAD_REQUEST.value(),
+                        "error", "INSUFFICIENT_STOCK",
+                        "message", ex.getMessage()
+                ));
+    }
+
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalStateException(
             IllegalStateException ex) {
