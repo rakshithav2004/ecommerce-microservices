@@ -55,6 +55,19 @@ public class GlobalExceptionHandler {
                 ));
     }
 
+    @ExceptionHandler(DuplicateOrderItemException.class)
+    public ResponseEntity<Map<String, Object>> handleDuplicateOrderItem(
+            DuplicateOrderItemException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(Map.of(
+                        "timestamp", LocalDateTime.now(),
+                        "status", 400,
+                        "error", "DUPLICATE_PRODUCT",
+                        "message", ex.getMessage()
+                ));
+    }
+
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalStateException(
             IllegalStateException ex) {

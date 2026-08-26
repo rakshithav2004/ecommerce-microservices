@@ -5,12 +5,12 @@ import com.ecommerce.product.dto.ProductResponse;
 import com.ecommerce.product.service.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-
 import java.math.BigDecimal;
 
 @RestController
@@ -25,8 +25,7 @@ public class ProductController {
     )
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ProductResponse createProduct(
-            @Valid @RequestBody ProductRequest request) {
+    public ProductResponse createProduct(@Valid @RequestBody ProductRequest request) {
         return productService.createProduct(request);
     }
 
@@ -35,8 +34,7 @@ public class ProductController {
             description = "Retrieves a product using its unique product ID"
     )
     @GetMapping("/{id}")
-    public ProductResponse getProductById(
-            @PathVariable String id) {
+    public ProductResponse getProductById(@PathVariable String id) {
         return productService.getProductById(id);
     }
 
@@ -90,7 +88,9 @@ public class ProductController {
     @PutMapping("/{id}/reserve-stock")
     public ProductResponse reserveStock(
             @PathVariable String id,
-            @RequestParam int quantity) {
+            @RequestParam
+            @Min(value = 1, message = "Quantity must be at least 1")
+            int quantity) {
         return productService.reserveStock(id, quantity);
     }
 
@@ -101,7 +101,9 @@ public class ProductController {
     @PutMapping("/{id}/release-stock")
     public ProductResponse releaseStock(
             @PathVariable String id,
-            @RequestParam int quantity) {
+            @RequestParam
+            @Min(value = 1, message = "Quantity must be at least 1")
+            int quantity) {
         return productService.releaseStock(id, quantity);
     }
 }

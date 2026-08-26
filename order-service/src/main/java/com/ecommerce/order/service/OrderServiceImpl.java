@@ -5,6 +5,7 @@ import com.ecommerce.order.dto.OrderItemResponse;
 import com.ecommerce.order.dto.OrderRequest;
 import com.ecommerce.order.dto.OrderResponse;
 import com.ecommerce.order.dto.ProductResponse;
+import com.ecommerce.order.exception.DuplicateOrderItemException;
 import com.ecommerce.order.exception.OrderNotFoundException;
 import com.ecommerce.order.model.Order;
 import com.ecommerce.order.model.OrderItem;
@@ -12,13 +13,12 @@ import com.ecommerce.order.model.OrderStatus;
 import com.ecommerce.order.model.PaymentStatus;
 import com.ecommerce.order.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
@@ -28,98 +28,105 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public OrderResponse createOrder(OrderRequest request) {
-
-        List<OrderItem> orderItems = new ArrayList<>();
-
-        BigDecimal totalAmount = BigDecimal.ZERO;
-
+        Set<String> productIds = new HashSet<>();
         for (OrderItemRequest itemRequest : request.items()) {
-            ProductResponse product =
-                    productServiceClient.getProductById(
-                            itemRequest.productId()
-                    );
-            productServiceClient.reserveStock(
-                    itemRequest.productId(),
-                    itemRequest.quantity()
-            );
-            BigDecimal subtotal = product.price()
-                    .multiply(
-                            BigDecimal.valueOf(
-                                    itemRequest.quantity()
-                            )
-                    );
-            OrderItem orderItem = new OrderItem(
-                    product.id(),
-                    product.name(),
-                    product.price(),
-                    itemRequest.quantity(),
-                    subtotal
-            );
-
-            orderItems.add(orderItem);
-            totalAmount = totalAmount.add(subtotal);
+            if (!productIds.add(itemRequest.productId())) {
+                throw new DuplicateOrderItemException(
+                        "Product cannot appear more than once in an order: "
+                                + itemRequest.productId()
+                );
+            }
         }
 
+        List<OrderItem> orderItems = new ArrayList<>();
+        List<OrderItem> reservedItems = new ArrayList<>();
+        BigDecimal totalAmount = BigDecimal.ZERO;
+
+        try {
+            for (OrderItemRequest itemRequest : request.items()) {
+                ProductResponse product =
+                        productServiceClient.getProductById(
+                                itemRequest.productId()
+                        );
+                productServiceClient.reserveStock(
+                        itemRequest.productId(),
+                        itemRequest.quantity()
+                );
+                BigDecimal subtotal =
+                        product.price()
+                                .multiply(
+                                        BigDecimal.valueOf(
+                                                itemRequest.quantity()
+                                        )
+                                );
+                OrderItem orderItem = new OrderItem(
+                        product.id(),
+                        product.name(),
+                        product.price(),
+                        itemRequest.quantity(),
+                        subtotal
+                );
+                orderItems.add(orderItem);
+                reservedItems.add(orderItem);
+                totalAmount = totalAmount.add(subtotal);
+            }
+        } catch (Exception exception) {
+            for (OrderItem item : reservedItems) {
+                try {
+                    productServiceClient.releaseStock(
+                            item.getProductId(),
+                            item.getQuantity()
+                    );
+                } catch (Exception rollbackException) {
+                    log.error(
+                            "Failed to release stock for product: {}",
+                            item.getProductId(),
+                            rollbackException
+                    );
+                }
+            }
+            throw exception;
+        }
         Order order = new Order();
-        order.setOrderNumber(
-                "ORD-" + UUID.randomUUID()
-        );
-
-        order.setCustomerId(
-                request.customerId()
-        );
-
+        order.setOrderNumber("ORD-" + UUID.randomUUID());
+        order.setCustomerId(request.customerId());
         order.setItems(orderItems);
-
-        order.setTotalAmount(
-                totalAmount
-        );
-
-        order.setStatus(
-                OrderStatus.CREATED
-        );
-
-        order.setPaymentStatus(
-                PaymentStatus.PENDING
-        );
-
-        Order savedOrder =
-                orderRepository.save(order);
-
+        order.setTotalAmount(totalAmount);
+        order.setStatus(OrderStatus.CREATED);
+        order.setPaymentStatus(PaymentStatus.PENDING);
+        Order savedOrder = orderRepository.save(order);
         return mapToResponse(savedOrder);
     }
 
     @Override
     public OrderResponse getOrderById(String id) {
-
-        Order order = orderRepository.findById(id)
-                .orElseThrow(() ->
-                        new OrderNotFoundException(
-                                "Order not found with id: " + id
-                        )
-                );
-
+        Order order =
+                orderRepository.findById(id)
+                        .orElseThrow(() ->
+                                new OrderNotFoundException(
+                                        "Order not found with id: "
+                                                + id
+                                )
+                        );
         return mapToResponse(order);
     }
 
     @Override
     public OrderResponse getOrderByNumber(
             String orderNumber) {
-
-        Order order = orderRepository
-                .findByOrderNumber(orderNumber)
-                .orElseThrow(() ->
-                        new OrderNotFoundException(
-                                "Order not found with number: "
-                                        + orderNumber
-                        )
-                );
-
+        Order order =
+                orderRepository
+                        .findByOrderNumber(orderNumber)
+                        .orElseThrow(() ->
+                                new OrderNotFoundException(
+                                        "Order not found with number: "
+                                                + orderNumber
+                                )
+                        );
         return mapToResponse(order);
     }
 
     private OrderResponse mapToResponse(Order order) {
-
         List<OrderItemResponse> items =
                 order.getItems()
                         .stream()
@@ -133,7 +140,6 @@ public class OrderServiceImpl implements OrderService {
                                 )
                         )
                         .toList();
-
         return new OrderResponse(
                 order.getId(),
                 order.getOrderNumber(),
@@ -154,9 +160,23 @@ public class OrderServiceImpl implements OrderService {
                                 "Order not found with id: " + orderId
                         )
                 );
-        if (order.getStatus() == OrderStatus.CANCELLED) {
+
+        OrderStatus currentStatus = order.getStatus();
+        if (currentStatus == OrderStatus.CANCELLED) {
             throw new IllegalStateException(
                     "Order is already cancelled"
+            );
+        }
+
+        if (currentStatus == OrderStatus.SHIPPED) {
+            throw new IllegalStateException(
+                    "Shipped order cannot be cancelled"
+            );
+        }
+
+        if (currentStatus == OrderStatus.DELIVERED) {
+            throw new IllegalStateException(
+                    "Delivered order cannot be cancelled"
             );
         }
 
@@ -167,9 +187,13 @@ public class OrderServiceImpl implements OrderService {
             );
         }
 
+        if (order.getPaymentStatus() == PaymentStatus.PAID) {
+            order.setPaymentStatus(
+                    PaymentStatus.REFUNDED
+            );
+        }
         order.setStatus(OrderStatus.CANCELLED);
-        Order cancelledOrder =
-                orderRepository.save(order);
+        Order cancelledOrder = orderRepository.save(order);
         return mapToResponse(cancelledOrder);
     }
 
@@ -177,6 +201,90 @@ public class OrderServiceImpl implements OrderService {
     public OrderResponse updateOrderStatus(
             String orderId,
             OrderStatus newStatus) {
+        Order order =
+                orderRepository.findById(orderId)
+                        .orElseThrow(() ->
+                                new OrderNotFoundException(
+                                        "Order not found with id: "
+                                                + orderId
+                                )
+                        );
+        validateStatusTransition(
+                order,
+                newStatus
+        );
+        order.setStatus(newStatus);
+        Order updatedOrder =
+                orderRepository.save(order);
+        return mapToResponse(updatedOrder);
+    }
+
+    private void validateStatusTransition(
+            Order order,
+            OrderStatus next) {
+        OrderStatus current =
+                order.getStatus();
+        if (current == OrderStatus.CANCELLED) {
+            throw new IllegalStateException(
+                    "Cancelled order cannot be updated"
+            );
+        }
+        if (current == OrderStatus.DELIVERED) {
+            throw new IllegalStateException(
+                    "Delivered order cannot be updated"
+            );
+        }
+        if (current == OrderStatus.CREATED) {
+            if (next == OrderStatus.CONFIRMED) {
+                if (order.getPaymentStatus()
+                        != PaymentStatus.PAID) {
+                    throw new IllegalStateException(
+                            "Order cannot be confirmed until payment is completed"
+                    );
+                }
+                return;
+            }
+            if (next == OrderStatus.CANCELLED) {
+                return;
+            }
+            throw new IllegalStateException(
+                    "CREATED order can only be CONFIRMED or CANCELLED"
+            );
+        }
+        if (current == OrderStatus.CONFIRMED) {
+            if (next == OrderStatus.PROCESSING
+                    || next == OrderStatus.CANCELLED) {
+                return;
+            }
+            throw new IllegalStateException(
+                    "CONFIRMED order can only be PROCESSING or CANCELLED"
+            );
+        }
+        if (current == OrderStatus.PROCESSING) {
+            if (next == OrderStatus.SHIPPED
+                    || next == OrderStatus.CANCELLED) {
+                return;
+            }
+            throw new IllegalStateException(
+                    "PROCESSING order can only be SHIPPED or CANCELLED"
+            );
+        }
+        if (current == OrderStatus.SHIPPED) {
+
+            if (next == OrderStatus.DELIVERED) {
+                return;
+            }
+            throw new IllegalStateException(
+                    "SHIPPED order can only be DELIVERED"
+            );
+        }
+    }
+
+    @Override
+    public OrderResponse updatePaymentStatus(
+            String orderId,
+            PaymentStatus paymentStatus) {
+
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() ->
                         new OrderNotFoundException(
@@ -184,70 +292,47 @@ public class OrderServiceImpl implements OrderService {
                         )
                 );
 
-        OrderStatus currentStatus = order.getStatus();
+        OrderStatus orderStatus = order.getStatus();
+        PaymentStatus currentPaymentStatus =
+                order.getPaymentStatus();
 
-        validateStatusTransition(
-                currentStatus,
-                newStatus
-        );
+        if (orderStatus == OrderStatus.CANCELLED) {
+            throw new IllegalStateException(
+                    "Payment cannot be updated for a cancelled order"
+            );
+        }
 
-        order.setStatus(newStatus);
+        if (orderStatus == OrderStatus.DELIVERED) {
+            throw new IllegalStateException(
+                    "Payment cannot be updated for a delivered order"
+            );
+        }
 
+        if (currentPaymentStatus == PaymentStatus.PAID) {
+            throw new IllegalStateException(
+                    "Paid order payment status cannot be changed"
+            );
+        }
+
+        if (currentPaymentStatus == PaymentStatus.PENDING) {
+            if (paymentStatus != PaymentStatus.PAID
+                    && paymentStatus != PaymentStatus.FAILED) {
+                throw new IllegalStateException(
+                        "PENDING payment can only be changed to PAID or FAILED"
+                );
+            }
+        }
+
+        if (currentPaymentStatus == PaymentStatus.FAILED) {
+            if (paymentStatus != PaymentStatus.PAID) {
+                throw new IllegalStateException(
+                        "FAILED payment can only be changed to PAID"
+                );
+            }
+        }
+        order.setPaymentStatus(paymentStatus);
         Order updatedOrder =
                 orderRepository.save(order);
-
         return mapToResponse(updatedOrder);
-    }
-
-    private void validateStatusTransition(
-            OrderStatus current,
-            OrderStatus next) {
-
-        if (current == OrderStatus.CANCELLED) {
-            throw new IllegalStateException(
-                    "Cancelled order cannot be updated"
-            );
-        }
-
-        if (current == OrderStatus.DELIVERED) {
-            throw new IllegalStateException(
-                    "Delivered order cannot be updated"
-            );
-        }
-
-        if (current == OrderStatus.CREATED
-                && next != OrderStatus.CONFIRMED
-                && next != OrderStatus.CANCELLED) {
-
-            throw new IllegalStateException(
-                    "CREATED order can only be CONFIRMED or CANCELLED"
-            );
-        }
-
-        if (current == OrderStatus.CONFIRMED
-                && next != OrderStatus.PROCESSING
-                && next != OrderStatus.CANCELLED) {
-
-            throw new IllegalStateException(
-                    "CONFIRMED order can only be PROCESSING or CANCELLED"
-            );
-        }
-
-        if (current == OrderStatus.PROCESSING
-                && next != OrderStatus.SHIPPED
-                && next != OrderStatus.CANCELLED) {
-
-            throw new IllegalStateException(
-                    "PROCESSING order can only be SHIPPED or CANCELLED"
-            );
-        }
-
-        if (current == OrderStatus.SHIPPED
-                && next != OrderStatus.DELIVERED) {
-
-            throw new IllegalStateException(
-                    "SHIPPED order can only be DELIVERED"
-            );
-        }
     }
 }

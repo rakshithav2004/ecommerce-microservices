@@ -3,6 +3,7 @@ package com.ecommerce.order.service;
 import com.ecommerce.order.dto.OrderRequest;
 import com.ecommerce.order.dto.OrderResponse;
 import com.ecommerce.order.model.OrderStatus;
+import com.ecommerce.order.model.PaymentStatus;
 
 public interface OrderService {
     OrderResponse createOrder(OrderRequest request);
@@ -12,5 +13,9 @@ public interface OrderService {
     OrderResponse updateOrderStatus(
             String orderId,
             OrderStatus newStatus
+    );
+    OrderResponse updatePaymentStatus(
+            String orderId,
+            PaymentStatus paymentStatus
     );
 }

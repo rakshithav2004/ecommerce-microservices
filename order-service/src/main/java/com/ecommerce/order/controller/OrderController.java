@@ -2,12 +2,14 @@ package com.ecommerce.order.controller;
 
 import com.ecommerce.order.dto.OrderRequest;
 import com.ecommerce.order.dto.OrderResponse;
+import com.ecommerce.order.dto.PaymentUpdateRequest;
 import com.ecommerce.order.model.OrderStatus;
 import com.ecommerce.order.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -69,6 +71,18 @@ public class OrderController {
         return orderService.updateOrderStatus(
                 id,
                 status
+        );
+    }
+
+    @PutMapping("/{orderId}/payment")
+    public ResponseEntity<OrderResponse> updatePaymentStatus(
+            @PathVariable String orderId,
+            @Valid @RequestBody PaymentUpdateRequest request) {
+        return ResponseEntity.ok(
+                orderService.updatePaymentStatus(
+                        orderId,
+                        request.paymentStatus()
+                )
         );
     }
 }
