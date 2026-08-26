@@ -2,12 +2,13 @@ package com.ecommerce.product.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -18,7 +19,7 @@ public class GlobalExceptionHandler {
 
         Map<String, Object> error = Map.of(
                 "timestamp", LocalDateTime.now(),
-                "status", 404,
+                "status", HttpStatus.NOT_FOUND.value(),
                 "error", "Not Found",
                 "message", ex.getMessage()
         );
@@ -34,7 +35,7 @@ public class GlobalExceptionHandler {
 
         Map<String, Object> error = Map.of(
                 "timestamp", LocalDateTime.now(),
-                "status", 409,
+                "status", HttpStatus.CONFLICT.value(),
                 "error", "Conflict",
                 "message", ex.getMessage()
         );
@@ -61,7 +62,7 @@ public class GlobalExceptionHandler {
 
         Map<String, Object> response = Map.of(
                 "timestamp", LocalDateTime.now(),
-                "status", 400,
+                "status", HttpStatus.BAD_REQUEST.value(),
                 "error", "Bad Request",
                 "message", "Validation failed",
                 "errors", validationErrors
@@ -70,5 +71,21 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(response);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalArgument(
+            IllegalArgumentException ex) {
+
+        Map<String, Object> error = Map.of(
+                "timestamp", LocalDateTime.now(),
+                "status", HttpStatus.BAD_REQUEST.value(),
+                "error", "Bad Request",
+                "message", ex.getMessage()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(error);
     }
 }
