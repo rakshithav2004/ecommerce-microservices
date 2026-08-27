@@ -14,81 +14,59 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final JwtService jwtService;
+  private final UserRepository userRepository;
+  private final PasswordEncoder passwordEncoder;
+  private final JwtService jwtService;
 
-    @Override
-    public AuthResponse register(RegisterRequest request) {
+  @Override
+  public AuthResponse register(RegisterRequest request) {
 
-        if (userRepository.existsByEmail(request.email())) {
-            throw new IllegalStateException(
-                    "User with email already exists: "
-                            + request.email()
-            );
-        }
-
-        String role = request.role();
-
-        if (role == null || role.isBlank()) {
-            role = "USER";
-        }
-
-        role = role.toUpperCase();
-
-        if (!role.equals("USER") && !role.equals("ADMIN")) {
-            throw new IllegalArgumentException(
-                    "Role must be USER or ADMIN"
-            );
-        }
-
-        User user = User.builder()
-                .username(request.username())
-                .email(request.email())
-                .password(
-                        passwordEncoder.encode(request.password())
-                )
-                .role(role)
-                .build();
-
-        User savedUser = userRepository.save(user);
-
-        String token = jwtService.generateToken(savedUser);
-
-        return new AuthResponse(
-                token,
-                savedUser.getUsername(),
-                savedUser.getEmail(),
-                savedUser.getRole()
-        );
+    if (userRepository.existsByEmail(request.email())) {
+      throw new IllegalStateException("User with email already exists: " + request.email());
     }
 
-    @Override
-    public AuthResponse login(LoginRequest request) {
+    String role = request.role();
 
-        User user = userRepository.findByEmail(request.email())
-                .orElseThrow(() ->
-                        new IllegalStateException(
-                                "Invalid email or password"
-                        )
-                );
-
-        if (!passwordEncoder.matches(
-                request.password(),
-                user.getPassword()
-        )) {
-            throw new IllegalStateException(
-                    "Invalid email or password"
-            );
-        }
-
-        String token = jwtService.generateToken(user);
-
-        return new AuthResponse(
-                token,
-                user.getUsername(),
-                user.getEmail(),
-                user.getRole()
-        );
+    if (role == null || role.isBlank()) {
+      role = "USER";
     }
+
+    role = role.toUpperCase();
+
+    if (!role.equals("USER") && !role.equals("ADMIN")) {
+      throw new IllegalArgumentException("Role must be USER or ADMIN");
+    }
+
+    User user =
+        User.builder()
+            .username(request.username())
+            .email(request.email())
+            .password(passwordEncoder.encode(request.password()))
+            .role(role)
+            .build();
+
+    User savedUser = userRepository.save(user);
+
+    String token = jwtService.generateToken(savedUser);
+
+    return new AuthResponse(
+        token, savedUser.getUsername(), savedUser.getEmail(), savedUser.getRole());
+  }
+
+  @Override
+  public AuthResponse login(LoginRequest request) {
+
+    User user =
+        userRepository
+            .findByEmail(request.email())
+            .orElseThrow(() -> new IllegalStateException("Invalid email or password"));
+
+    if (!passwordEncoder.matches(request.password(), user.getPassword())) {
+      throw new IllegalStateException("Invalid email or password");
+    }
+
+    String token = jwtService.generateToken(user);
+
+    return new AuthResponse(token, user.getUsername(), user.getEmail(), user.getRole());
+  }
 }

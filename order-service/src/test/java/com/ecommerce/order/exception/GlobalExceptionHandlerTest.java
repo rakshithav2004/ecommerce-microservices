@@ -1,122 +1,74 @@
 package com.ecommerce.order.exception;
 
+import static org.junit.jupiter.api.Assertions.*;
+
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import java.util.Map;
-import static org.junit.jupiter.api.Assertions.*;
 
 class GlobalExceptionHandlerTest {
 
-    private final GlobalExceptionHandler handler =
-            new GlobalExceptionHandler();
+  private final GlobalExceptionHandler handler = new GlobalExceptionHandler();
 
-    @Test
-    void shouldHandleOrderNotFoundException() {
+  @Test
+  void shouldHandleOrderNotFoundException() {
 
-        OrderNotFoundException exception =
-                new OrderNotFoundException("Order not found: ORD-001");
+    OrderNotFoundException exception = new OrderNotFoundException("Order not found: ORD-001");
 
-        ResponseEntity<Map<String, Object>> response =
-                handler.handleOrderNotFound(exception);
+    ResponseEntity<Map<String, Object>> response = handler.handleOrderNotFound(exception);
 
-        assertEquals(
-                HttpStatus.NOT_FOUND,
-                response.getStatusCode()
-        );
+    assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
 
-        assertNotNull(response.getBody());
+    assertNotNull(response.getBody());
 
-        assertEquals(
-                404,
-                response.getBody().get("status")
-        );
+    assertEquals(404, response.getBody().get("status"));
 
-        assertEquals(
-                "ORDER_NOT_FOUND",
-                response.getBody().get("error")
-        );
+    assertEquals("ORDER_NOT_FOUND", response.getBody().get("error"));
 
-        assertEquals(
-                "Order not found: ORD-001",
-                response.getBody().get("message")
-        );
+    assertEquals("Order not found: ORD-001", response.getBody().get("message"));
 
-        assertNotNull(
-                response.getBody().get("timestamp")
-        );
-    }
+    assertNotNull(response.getBody().get("timestamp"));
+  }
 
-    @Test
-    void shouldHandleIllegalStateException() {
+  @Test
+  void shouldHandleIllegalStateException() {
 
-        IllegalStateException exception =
-                new IllegalStateException("Product Service unavailable");
+    IllegalStateException exception = new IllegalStateException("Product Service unavailable");
 
-        ResponseEntity<Map<String, Object>> response =
-                handler.handleIllegalStateException(exception);
+    ResponseEntity<Map<String, Object>> response = handler.handleIllegalStateException(exception);
 
-        assertEquals(
-                HttpStatus.BAD_REQUEST,
-                response.getStatusCode()
-        );
+    assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
 
-        assertNotNull(response.getBody());
+    assertNotNull(response.getBody());
 
-        assertEquals(
-                400,
-                response.getBody().get("status")
-        );
+    assertEquals(400, response.getBody().get("status"));
 
-        assertEquals(
-                "BAD_REQUEST",
-                response.getBody().get("error")
-        );
+    assertEquals("BAD_REQUEST", response.getBody().get("error"));
 
-        assertEquals(
-                "Product Service unavailable",
-                response.getBody().get("message")
-        );
+    assertEquals("Product Service unavailable", response.getBody().get("message"));
 
-        assertNotNull(
-                response.getBody().get("timestamp")
-        );
-    }
+    assertNotNull(response.getBody().get("timestamp"));
+  }
 
-    @Test
-    void shouldHandleGeneralException() {
+  @Test
+  void shouldHandleGeneralException() {
 
-        Exception exception =
-                new Exception("Unexpected error");
+    Exception exception = new Exception("Unexpected error");
 
-        ResponseEntity<Map<String, Object>> response =
-                handler.handleGeneralException(exception);
+    ResponseEntity<Map<String, Object>> response = handler.handleGeneralException(exception);
 
-        // Your current handler returns 500
-        assertEquals(
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                response.getStatusCode()
-        );
+    // Your current handler returns 500
+    assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
 
-        assertNotNull(response.getBody());
+    assertNotNull(response.getBody());
 
-        assertEquals(
-                500,
-                response.getBody().get("status")
-        );
+    assertEquals(500, response.getBody().get("status"));
 
-        assertEquals(
-                "INTERNAL_SERVER_ERROR",
-                response.getBody().get("error")
-        );
+    assertEquals("INTERNAL_SERVER_ERROR", response.getBody().get("error"));
 
-        assertEquals(
-                "An unexpected error occurred",
-                response.getBody().get("message")
-        );
+    assertEquals("An unexpected error occurred", response.getBody().get("message"));
 
-        assertNotNull(
-                response.getBody().get("timestamp")
-        );
-    }
+    assertNotNull(response.getBody().get("timestamp"));
+  }
 }

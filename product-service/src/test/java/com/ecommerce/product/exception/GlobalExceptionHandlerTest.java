@@ -1,157 +1,92 @@
 package com.ecommerce.product.exception;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.validation.BindingResult;
-import org.springframework.validation.FieldError;
-import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.util.Map;
+import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+
 class GlobalExceptionHandlerTest {
 
-    private final GlobalExceptionHandler handler =
-            new GlobalExceptionHandler();
+  private final GlobalExceptionHandler handler = new GlobalExceptionHandler();
 
+  @Test
+  void shouldHandleProductNotFoundException() {
 
-    @Test
-    void shouldHandleProductNotFoundException() {
+    ProductNotFoundException exception =
+        new ProductNotFoundException("Product not found: product-123");
 
-        ProductNotFoundException exception =
-                new ProductNotFoundException(
-                        "Product not found: product-123"
-                );
+    ResponseEntity<Map<String, Object>> response = handler.handleProductNotFound(exception);
 
-        ResponseEntity<Map<String, Object>> response =
-                handler.handleProductNotFound(exception);
+    assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
 
-        assertEquals(
-                HttpStatus.NOT_FOUND,
-                response.getStatusCode()
-        );
+    assertNotNull(response.getBody());
 
-        assertNotNull(response.getBody());
+    assertEquals(404, response.getBody().get("status"));
 
-        assertEquals(
-                404,
-                response.getBody().get("status")
-        );
+    assertEquals("Not Found", response.getBody().get("error"));
 
-        assertEquals(
-                "Not Found",
-                response.getBody().get("error")
-        );
+    assertEquals("Product not found: product-123", response.getBody().get("message"));
 
-        assertEquals(
-                "Product not found: product-123",
-                response.getBody().get("message")
-        );
+    assertNotNull(response.getBody().get("timestamp"));
+  }
 
-        assertNotNull(
-                response.getBody().get("timestamp")
-        );
-    }
+  @Test
+  void shouldHandleProductAlreadyExistsException() {
 
+    ProductAlreadyExistsException exception =
+        new ProductAlreadyExistsException("Product with SKU already exists: PHONE-001");
 
-    @Test
-    void shouldHandleProductAlreadyExistsException() {
+    ResponseEntity<Map<String, Object>> response = handler.handleProductAlreadyExists(exception);
 
-        ProductAlreadyExistsException exception =
-                new ProductAlreadyExistsException(
-                        "Product with SKU already exists: PHONE-001"
-                );
+    assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
 
-        ResponseEntity<Map<String, Object>> response =
-                handler.handleProductAlreadyExists(exception);
+    assertNotNull(response.getBody());
 
-        assertEquals(
-                HttpStatus.CONFLICT,
-                response.getStatusCode()
-        );
+    assertEquals(409, response.getBody().get("status"));
 
-        assertNotNull(response.getBody());
+    assertEquals("Conflict", response.getBody().get("error"));
 
-        assertEquals(
-                409,
-                response.getBody().get("status")
-        );
+    assertEquals("Product with SKU already exists: PHONE-001", response.getBody().get("message"));
 
-        assertEquals(
-                "Conflict",
-                response.getBody().get("error")
-        );
+    assertNotNull(response.getBody().get("timestamp"));
+  }
 
-        assertEquals(
-                "Product with SKU already exists: PHONE-001",
-                response.getBody().get("message")
-        );
+  @Test
+  void shouldHandleValidationErrors() {
 
-        assertNotNull(
-                response.getBody().get("timestamp")
-        );
-    }
+    BindingResult bindingResult = mock(BindingResult.class);
 
+    FieldError fieldError = new FieldError("productRequest", "name", "Product name is required");
 
-    @Test
-    void shouldHandleValidationErrors() {
+    when(bindingResult.getFieldErrors()).thenReturn(java.util.List.of(fieldError));
 
-        BindingResult bindingResult =
-                mock(BindingResult.class);
+    MethodArgumentNotValidException exception = mock(MethodArgumentNotValidException.class);
 
-        FieldError fieldError = new FieldError(
-                "productRequest",
-                "name",
-                "Product name is required"
-        );
+    when(exception.getBindingResult()).thenReturn(bindingResult);
 
-        when(bindingResult.getFieldErrors())
-                .thenReturn(java.util.List.of(fieldError));
+    ResponseEntity<Map<String, Object>> response = handler.handleValidationErrors(exception);
 
-        MethodArgumentNotValidException exception =
-                mock(MethodArgumentNotValidException.class);
+    assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
 
-        when(exception.getBindingResult())
-                .thenReturn(bindingResult);
+    assertNotNull(response.getBody());
 
-        ResponseEntity<Map<String, Object>> response =
-                handler.handleValidationErrors(exception);
+    assertEquals(400, response.getBody().get("status"));
 
-        assertEquals(
-                HttpStatus.BAD_REQUEST,
-                response.getStatusCode()
-        );
+    assertEquals("Bad Request", response.getBody().get("error"));
 
-        assertNotNull(response.getBody());
+    assertEquals("Validation failed", response.getBody().get("message"));
 
-        assertEquals(
-                400,
-                response.getBody().get("status")
-        );
+    assertNotNull(response.getBody().get("timestamp"));
 
-        assertEquals(
-                "Bad Request",
-                response.getBody().get("error")
-        );
+    @SuppressWarnings("unchecked")
+    Map<String, String> errors = (Map<String, String>) response.getBody().get("errors");
 
-        assertEquals(
-                "Validation failed",
-                response.getBody().get("message")
-        );
-
-        assertNotNull(
-                response.getBody().get("timestamp")
-        );
-
-        @SuppressWarnings("unchecked")
-        Map<String, String> errors =
-                (Map<String, String>)
-                        response.getBody().get("errors");
-
-        assertEquals(
-                "Product name is required",
-                errors.get("name")
-        );
-    }
+    assertEquals("Product name is required", errors.get("name"));
+  }
 }

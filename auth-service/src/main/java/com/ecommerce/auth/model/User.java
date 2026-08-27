@@ -14,14 +14,13 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @AllArgsConstructor
 public class User {
 
-    @Id
-    private String id;
+  @Id private String id;
 
-    private String username;
+  private String username;
 
-    private String email;
+  private String email;
 
-    private String password;
+  private String password;
 
-    private String role;
+  private String role;
 }

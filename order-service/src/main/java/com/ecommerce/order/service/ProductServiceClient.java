@@ -10,63 +10,35 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class ProductServiceClient {
 
-    private final ProductClient productClient;
+  private final ProductClient productClient;
 
-    @CircuitBreaker(
-            name = "productService",
-            fallbackMethod = "getProductByIdFallback"
-    )
-    public ProductResponse getProductById(String productId) {
-        return productClient.getProductById(productId);
-    }
+  @CircuitBreaker(name = "productService", fallbackMethod = "getProductByIdFallback")
+  public ProductResponse getProductById(String productId) {
+    return productClient.getProductById(productId);
+  }
 
-    public ProductResponse getProductByIdFallback(
-            String productId,
-            Throwable throwable) {
-        throw new IllegalStateException(
-                "Product Service is currently unavailable. " +
-                        "Please try again later."
-        );
-    }
+  public ProductResponse getProductByIdFallback(String productId, Throwable throwable) {
+    throw new IllegalStateException(
+        "Product Service is currently unavailable. " + "Please try again later.");
+  }
 
-    @CircuitBreaker(
-            name = "productService",
-            fallbackMethod = "reserveStockFallback"
-    )
-    public ProductResponse reserveStock(
-            String productId,
-            int quantity) {
-        return productClient.reserveStock(productId, quantity);
-    }
+  @CircuitBreaker(name = "productService", fallbackMethod = "reserveStockFallback")
+  public ProductResponse reserveStock(String productId, int quantity) {
+    return productClient.reserveStock(productId, quantity);
+  }
 
-    public ProductResponse reserveStockFallback(
-            String productId,
-            int quantity,
-            Throwable throwable) {
-        throw new IllegalStateException(
-                "Product Service is currently unavailable. " +
-                        "Unable to reserve stock."
-        );
-    }
+  public ProductResponse reserveStockFallback(String productId, int quantity, Throwable throwable) {
+    throw new IllegalStateException(
+        "Product Service is currently unavailable. " + "Unable to reserve stock.");
+  }
 
-    @CircuitBreaker(
-            name = "productService",
-            fallbackMethod = "releaseStockFallback"
-    )
-    public ProductResponse releaseStock(
-            String productId,
-            int quantity) {
-        return productClient.releaseStock(productId, quantity);
-    }
+  @CircuitBreaker(name = "productService", fallbackMethod = "releaseStockFallback")
+  public ProductResponse releaseStock(String productId, int quantity) {
+    return productClient.releaseStock(productId, quantity);
+  }
 
-    public ProductResponse releaseStockFallback(
-            String productId,
-            int quantity,
-            Throwable throwable) {
-        throw new IllegalStateException(
-                "Product Service is currently unavailable. " +
-                        "Unable to release stock."
-        );
-    }
+  public ProductResponse releaseStockFallback(String productId, int quantity, Throwable throwable) {
+    throw new IllegalStateException(
+        "Product Service is currently unavailable. " + "Unable to release stock.");
+  }
 }
-

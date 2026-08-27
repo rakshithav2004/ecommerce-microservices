@@ -1,11 +1,13 @@
 package com.ecommerce.order.repository;
 
 import com.ecommerce.order.model.Order;
-import org.springframework.data.mongodb.repository.MongoRepository;
 import java.util.Optional;
+import org.springframework.data.mongodb.repository.MongoRepository;
 
 public interface OrderRepository extends MongoRepository<Order, String> {
-    Optional<Order> findByOrderNumber(String orderNumber);
-    boolean existsByOrderNumber(String orderNumber);
-    boolean existsByCustomerId(String customerId);
+  Optional<Order> findByOrderNumber(String orderNumber);
+
+  boolean existsByOrderNumber(String orderNumber);
+
+  boolean existsByCustomerId(String customerId);
 }
