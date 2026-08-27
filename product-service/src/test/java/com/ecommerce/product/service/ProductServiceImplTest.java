@@ -15,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.MongoTemplate;
 
 import java.math.BigDecimal;
@@ -238,11 +239,23 @@ class ProductServiceImplTest {
     @Test
     void reserveStock_shouldReduceStockSuccessfully() {
 
-        when(productRepository.findById("product-001"))
-                .thenReturn(Optional.of(product));
+        Product updatedProduct = Product.builder()
+                .id("product-001")
+                .sku("PHONE-001")
+                .name("Samsung Galaxy")
+                .category("Electronics")
+                .description("Samsung smartphone")
+                .price(new BigDecimal("25000"))
+                .stock(7)
+                .active(true)
+                .build();
 
-        when(productRepository.save(any(Product.class)))
-                .thenReturn(product);
+        when(mongoTemplate.findAndModify(
+                any(),
+                any(),
+                any(FindAndModifyOptions.class),
+                eq(Product.class)
+        )).thenReturn(updatedProduct);
 
         ProductResponse response =
                 productService.reserveStock(
@@ -251,17 +264,23 @@ class ProductServiceImplTest {
                 );
 
         assertNotNull(response);
-        assertEquals(7, product.getStock());
+        assertEquals("product-001", response.id());
+        assertEquals("PHONE-001", response.sku());
+        assertEquals("Samsung Galaxy", response.name());
+        assertEquals(7, response.stock());
 
-        verify(productRepository).findById("product-001");
-        verify(productRepository).save(product);
+        verify(mongoTemplate).findAndModify(
+                any(),
+                any(),
+                any(FindAndModifyOptions.class),
+                eq(Product.class)
+        );
+        verify(productRepository, never())
+                .findById(anyString());
     }
 
     @Test
     void reserveStock_shouldThrowExceptionForInvalidQuantity() {
-
-        when(productRepository.findById("product-001"))
-                .thenReturn(Optional.of(product));
 
         assertThrows(
                 IllegalArgumentException.class,
@@ -270,7 +289,6 @@ class ProductServiceImplTest {
                         0
                 )
         );
-
         verify(productRepository, never())
                 .save(any(Product.class));
     }

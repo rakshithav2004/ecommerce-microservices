@@ -11,6 +11,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 public class SecurityConfig {
+
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final SecurityExceptionHandler securityExceptionHandler;
 
@@ -63,8 +64,25 @@ public class SecurityConfig {
                                 "/api/v1/products/**"
                         ).hasAnyRole("USER", "ADMIN")
                         .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/v1/orders"
+                        ).hasAnyRole("USER", "ADMIN")
+                        .requestMatchers(
+                                HttpMethod.GET,
                                 "/api/v1/orders/**"
                         ).hasAnyRole("USER", "ADMIN")
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/v1/orders/*/cancel"
+                        ).hasAnyRole("USER", "ADMIN")
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/v1/orders/*/status"
+                        ).hasRole("ADMIN")
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/v1/orders/*/payment"
+                        ).hasRole("ADMIN")
                         .anyRequest()
                         .authenticated()
                 )

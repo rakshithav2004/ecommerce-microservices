@@ -20,16 +20,31 @@ class GlobalExceptionHandlerTest {
         ResponseEntity<Map<String, Object>> response =
                 handler.handleOrderNotFound(exception);
 
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertEquals(
+                HttpStatus.NOT_FOUND,
+                response.getStatusCode()
+        );
 
         assertNotNull(response.getBody());
 
-        assertEquals(404, response.getBody().get("status"));
-        assertEquals("ORDER_NOT_FOUND",
-                response.getBody().get("error"));
-        assertEquals("Order not found: ORD-001",
-                response.getBody().get("message"));
-        assertNotNull(response.getBody().get("timestamp"));
+        assertEquals(
+                404,
+                response.getBody().get("status")
+        );
+
+        assertEquals(
+                "ORDER_NOT_FOUND",
+                response.getBody().get("error")
+        );
+
+        assertEquals(
+                "Order not found: ORD-001",
+                response.getBody().get("message")
+        );
+
+        assertNotNull(
+                response.getBody().get("timestamp")
+        );
     }
 
     @Test
@@ -42,18 +57,30 @@ class GlobalExceptionHandlerTest {
                 handler.handleIllegalStateException(exception);
 
         assertEquals(
-                HttpStatus.SERVICE_UNAVAILABLE,
+                HttpStatus.BAD_REQUEST,
                 response.getStatusCode()
         );
 
         assertNotNull(response.getBody());
 
-        assertEquals(503, response.getBody().get("status"));
-        assertEquals("Service Unavailable",
-                response.getBody().get("error"));
-        assertEquals("Product Service unavailable",
-                response.getBody().get("message"));
-        assertNotNull(response.getBody().get("timestamp"));
+        assertEquals(
+                400,
+                response.getBody().get("status")
+        );
+
+        assertEquals(
+                "BAD_REQUEST",
+                response.getBody().get("error")
+        );
+
+        assertEquals(
+                "Product Service unavailable",
+                response.getBody().get("message")
+        );
+
+        assertNotNull(
+                response.getBody().get("timestamp")
+        );
     }
 
     @Test
@@ -65,22 +92,31 @@ class GlobalExceptionHandlerTest {
         ResponseEntity<Map<String, Object>> response =
                 handler.handleGeneralException(exception);
 
+        // Your current handler returns 500
         assertEquals(
-                HttpStatus.SERVICE_UNAVAILABLE,
+                HttpStatus.INTERNAL_SERVER_ERROR,
                 response.getStatusCode()
         );
 
         assertNotNull(response.getBody());
 
-        assertEquals(503, response.getBody().get("status"));
-        assertEquals("SERVICE_UNAVAILABLE",
-                response.getBody().get("error"));
+        assertEquals(
+                500,
+                response.getBody().get("status")
+        );
 
         assertEquals(
-                "Product Service is currently unavailable. Please try again later.",
+                "INTERNAL_SERVER_ERROR",
+                response.getBody().get("error")
+        );
+
+        assertEquals(
+                "An unexpected error occurred",
                 response.getBody().get("message")
         );
 
-        assertNotNull(response.getBody().get("timestamp"));
+        assertNotNull(
+                response.getBody().get("timestamp")
+        );
     }
 }

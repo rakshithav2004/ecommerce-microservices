@@ -14,9 +14,10 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.stereotype.Service;
 import com.ecommerce.product.exception.ProductAlreadyExistsException;
 import com.ecommerce.product.exception.ProductNotFoundException;
-
 import java.math.BigDecimal;
 import java.util.List;
+import org.springframework.data.mongodb.core.FindAndModifyOptions;
+import org.springframework.data.mongodb.core.query.Update;
 
 @Service
 @RequiredArgsConstructor
@@ -155,19 +156,21 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public ProductResponse updateProduct(String id, ProductRequest request) {
-
+    public ProductResponse updateProduct(
+            String id,
+            ProductRequest request) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() ->
                         new ProductNotFoundException(
                                 "Product not found with id: " + id
-                        ));
+                        )
+                );
 
         if (!product.getSku().equals(request.sku())
                 && productRepository.existsBySku(request.sku())) {
-
             throw new ProductAlreadyExistsException(
-                    "Product with SKU already exists: " + request.sku()
+                    "Product with SKU already exists: "
+                            + request.sku()
             );
         }
 
@@ -176,10 +179,8 @@ public class ProductServiceImpl implements ProductService {
         product.setCategory(request.category());
         product.setDescription(request.description());
         product.setPrice(request.price());
-        product.setStock(request.stock());
-
-        Product updatedProduct = productRepository.save(product);
-
+        Product updatedProduct =
+                productRepository.save(product);
         return new ProductResponse(
                 updatedProduct.getId(),
                 updatedProduct.getSku(),
@@ -205,13 +206,9 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public ProductResponse reserveStock(String productId, int quantity) {
-
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() ->
-                        new ProductNotFoundException(
-                                "Product not found with id: " + productId
-                        ));
+    public ProductResponse reserveStock(
+            String productId,
+            int quantity) {
 
         if (quantity <= 0) {
             throw new IllegalArgumentException(
@@ -219,26 +216,49 @@ public class ProductServiceImpl implements ProductService {
             );
         }
 
-        if (product.getStock() < quantity) {
+        Query query = new Query(
+                Criteria.where("_id").is(productId)
+                        .and("stock").gte(quantity)
+        );
+
+        Update update = new Update()
+                .inc("stock", -quantity);
+
+        Product updatedProduct =
+                mongoTemplate.findAndModify(
+                        query,
+                        update,
+                        FindAndModifyOptions.options()
+                                .returnNew(true),
+                        Product.class
+                );
+
+        if (updatedProduct == null) {
+
+            Product product =
+                    productRepository.findById(productId)
+                            .orElseThrow(() ->
+                                    new ProductNotFoundException(
+                                            "Product not found with id: "
+                                                    + productId
+                                    )
+                            );
+
             throw new IllegalArgumentException(
                     "Insufficient stock for product: "
                             + product.getName()
             );
         }
 
-        product.setStock(product.getStock() - quantity);
-
-        Product savedProduct = productRepository.save(product);
-
         return new ProductResponse(
-                savedProduct.getId(),
-                savedProduct.getSku(),
-                savedProduct.getName(),
-                savedProduct.getCategory(),
-                savedProduct.getDescription(),
-                savedProduct.getPrice(),
-                savedProduct.getStock(),
-                savedProduct.getActive()
+                updatedProduct.getId(),
+                updatedProduct.getSku(),
+                updatedProduct.getName(),
+                updatedProduct.getCategory(),
+                updatedProduct.getDescription(),
+                updatedProduct.getPrice(),
+                updatedProduct.getStock(),
+                updatedProduct.getActive()
         );
     }
 

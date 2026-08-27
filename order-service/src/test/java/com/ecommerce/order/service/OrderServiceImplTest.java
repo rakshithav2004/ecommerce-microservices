@@ -247,26 +247,54 @@ class OrderServiceImplTest {
     @Test
     void updateOrderStatus_shouldUpdateSuccessfully() {
 
-        Order order = createOrder();
+        Order order = new Order();
+
+        order.setId("ORD-001");
+        order.setOrderNumber("ORD-001");
+        order.setCustomerId("CUST-001");
+
+        OrderItem item = new OrderItem(
+                "product-001",
+                "Samsung Galaxy",
+                new BigDecimal("25000"),
+                2,
+                new BigDecimal("50000")
+        );
+
+        order.setItems(List.of(item));
+        order.setTotalAmount(new BigDecimal("50000"));
+
         order.setStatus(OrderStatus.CREATED);
 
-        when(orderRepository.findById("order-001"))
+        // Use the successful payment status from your enum
+        order.setPaymentStatus(PaymentStatus.PAID);
+
+        when(orderRepository.findById("ORD-001"))
                 .thenReturn(Optional.of(order));
 
         when(orderRepository.save(any(Order.class)))
-                .thenAnswer(invocation ->
-                        invocation.getArgument(0));
+                .thenReturn(order);
 
         OrderResponse response =
                 orderService().updateOrderStatus(
-                        "order-001",
+                        "ORD-001",
                         OrderStatus.CONFIRMED
                 );
+
+        assertNotNull(response);
 
         assertEquals(
                 OrderStatus.CONFIRMED,
                 response.status()
         );
+
+        assertEquals(
+                OrderStatus.CONFIRMED,
+                order.getStatus()
+        );
+
+        verify(orderRepository)
+                .findById("ORD-001");
 
         verify(orderRepository)
                 .save(order);
