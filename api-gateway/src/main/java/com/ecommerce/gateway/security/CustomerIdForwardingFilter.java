@@ -23,8 +23,6 @@ public class CustomerIdForwardingFilter extends OncePerRequestFilter {
         Authentication authentication =
                 SecurityContextHolder.getContext().getAuthentication();
 
-        System.out.println("GATEWAY - Authentication: " + authentication);
-
         if (authentication != null
                 && authentication.getDetails() instanceof String customerId
                 && request.getRequestURI().startsWith("/api/v1/orders")) {

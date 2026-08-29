@@ -25,7 +25,6 @@ public class OrderController {
       description = "Retrieves all orders belonging to the authenticated customer")
   @GetMapping("/my-orders")
   public List<OrderResponse> getMyOrders(@RequestHeader("X-Customer-Id") String customerId) {
-    System.out.println("ORDER SERVICE - Customer ID RECEIVED: " + customerId);
     return orderService.getMyOrders(customerId);
   }
 
