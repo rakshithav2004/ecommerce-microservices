@@ -16,6 +16,8 @@ public class User {
 
   @Id private String id;
 
+  private String customerId;
+
   private String username;
 
   private String email;

@@ -12,6 +12,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/v1/orders")
 @RequiredArgsConstructor
@@ -20,13 +22,27 @@ public class OrderController {
   private final OrderService orderService;
 
   @Operation(
+          summary = "Get my orders",
+          description = "Retrieves all orders belonging to the authenticated customer"
+  )
+  @GetMapping("/my-orders")
+  public List<OrderResponse> getMyOrders(
+          @RequestHeader("X-Customer-Id") String customerId) {
+    System.out.println("ORDER SERVICE - Customer ID RECEIVED: " + customerId);
+    return orderService.getMyOrders(customerId);
+  }
+
+  @Operation(
       summary = "Create a new order",
       description =
           "Places a new order for the given product and quantity, validating stock via product-service")
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
-  public OrderResponse createOrder(@Valid @RequestBody OrderRequest request) {
-    return orderService.createOrder(request);
+  public OrderResponse createOrder(
+          @Valid @RequestBody OrderRequest request,
+          @RequestHeader("X-Customer-Id") String customerId) {
+
+    return orderService.createOrder(request, customerId);
   }
 
   @Operation(
@@ -66,5 +82,14 @@ public class OrderController {
   public ResponseEntity<OrderResponse> updatePaymentStatus(
       @PathVariable String orderId, @Valid @RequestBody PaymentUpdateRequest request) {
     return ResponseEntity.ok(orderService.updatePaymentStatus(orderId, request.paymentStatus()));
+  }
+
+  @Operation(
+          summary = "Get all orders",
+          description = "Retrieves all orders. Admin access only."
+  )
+  @GetMapping("/all")
+  public List<OrderResponse> getAllOrders() {
+    return orderService.getAllOrders();
   }
 }

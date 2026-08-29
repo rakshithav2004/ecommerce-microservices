@@ -6,6 +6,7 @@ import com.ecommerce.auth.dto.RegisterRequest;
 import com.ecommerce.auth.model.User;
 import com.ecommerce.auth.repository.UserRepository;
 import com.ecommerce.auth.security.JwtService;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -25,32 +26,21 @@ public class AuthServiceImpl implements AuthService {
       throw new IllegalStateException("User with email already exists: " + request.email());
     }
 
-    String role = request.role();
-
-    if (role == null || role.isBlank()) {
-      role = "USER";
-    }
-
-    role = role.toUpperCase();
-
-    if (!role.equals("USER") && !role.equals("ADMIN")) {
-      throw new IllegalArgumentException("Role must be USER or ADMIN");
-    }
-
     User user =
-        User.builder()
-            .username(request.username())
-            .email(request.email())
-            .password(passwordEncoder.encode(request.password()))
-            .role(role)
-            .build();
+            User.builder()
+                    .customerId("CUST-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
+                    .username(request.username())
+                    .email(request.email())
+                    .password(passwordEncoder.encode(request.password()))
+                    .role(request.role())
+                    .build();
 
     User savedUser = userRepository.save(user);
 
     String token = jwtService.generateToken(savedUser);
 
     return new AuthResponse(
-        token, savedUser.getUsername(), savedUser.getEmail(), savedUser.getRole());
+            token, savedUser.getUsername(), savedUser.getEmail(), savedUser.getRole());
   }
 
   @Override
