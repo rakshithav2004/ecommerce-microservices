@@ -38,8 +38,7 @@ public class OrderServiceImpl implements OrderService {
     for (OrderItemRequest itemRequest : request.items()) {
       if (!productIds.add(itemRequest.productId())) {
         throw new DuplicateOrderItemException(
-                "Product cannot appear more than once in an order: "
-                        + itemRequest.productId());
+            "Product cannot appear more than once in an order: " + itemRequest.productId());
       }
     }
 
@@ -51,24 +50,15 @@ public class OrderServiceImpl implements OrderService {
 
       for (OrderItemRequest itemRequest : request.items()) {
 
-        ProductResponse product =
-                productServiceClient.getProductById(itemRequest.productId());
+        ProductResponse product = productServiceClient.getProductById(itemRequest.productId());
 
-        productServiceClient.reserveStock(
-                itemRequest.productId(),
-                itemRequest.quantity());
+        productServiceClient.reserveStock(itemRequest.productId(), itemRequest.quantity());
 
-        BigDecimal subtotal =
-                product.price()
-                        .multiply(BigDecimal.valueOf(itemRequest.quantity()));
+        BigDecimal subtotal = product.price().multiply(BigDecimal.valueOf(itemRequest.quantity()));
 
         OrderItem orderItem =
-                new OrderItem(
-                        product.id(),
-                        product.name(),
-                        product.price(),
-                        itemRequest.quantity(),
-                        subtotal);
+            new OrderItem(
+                product.id(), product.name(), product.price(), itemRequest.quantity(), subtotal);
 
         orderItems.add(orderItem);
         reservedItems.add(orderItem);
@@ -80,15 +70,11 @@ public class OrderServiceImpl implements OrderService {
 
       for (OrderItem item : reservedItems) {
         try {
-          productServiceClient.releaseStock(
-                  item.getProductId(),
-                  item.getQuantity());
+          productServiceClient.releaseStock(item.getProductId(), item.getQuantity());
 
         } catch (Exception rollbackException) {
           log.error(
-                  "Failed to release stock for product: {}",
-                  item.getProductId(),
-                  rollbackException);
+              "Failed to release stock for product: {}", item.getProductId(), rollbackException);
         }
       }
 
@@ -116,12 +102,9 @@ public class OrderServiceImpl implements OrderService {
   public OrderResponse getOrderById(String id) {
 
     Order order =
-            orderRepository
-                    .findById(id)
-                    .orElseThrow(
-                            () ->
-                                    new OrderNotFoundException(
-                                            "Order not found with id: " + id));
+        orderRepository
+            .findById(id)
+            .orElseThrow(() -> new OrderNotFoundException("Order not found with id: " + id));
 
     return mapToResponse(order);
   }
@@ -130,12 +113,10 @@ public class OrderServiceImpl implements OrderService {
   public OrderResponse getOrderByNumber(String orderNumber) {
 
     Order order =
-            orderRepository
-                    .findByOrderNumber(orderNumber)
-                    .orElseThrow(
-                            () ->
-                                    new OrderNotFoundException(
-                                            "Order not found with number: " + orderNumber));
+        orderRepository
+            .findByOrderNumber(orderNumber)
+            .orElseThrow(
+                () -> new OrderNotFoundException("Order not found with number: " + orderNumber));
 
     return mapToResponse(order);
   }
@@ -143,40 +124,37 @@ public class OrderServiceImpl implements OrderService {
   private OrderResponse mapToResponse(Order order) {
 
     List<OrderItemResponse> items =
-            order.getItems() == null
-                    ? List.of()
-                    : order.getItems().stream()
-                    .map(
-                            item ->
-                                    new OrderItemResponse(
-                                            item.getProductId(),
-                                            item.getProductName(),
-                                            item.getPrice(),
-                                            item.getQuantity(),
-                                            item.getSubtotal()))
-                    .toList();
+        order.getItems() == null
+            ? List.of()
+            : order.getItems().stream()
+                .map(
+                    item ->
+                        new OrderItemResponse(
+                            item.getProductId(),
+                            item.getProductName(),
+                            item.getPrice(),
+                            item.getQuantity(),
+                            item.getSubtotal()))
+                .toList();
 
     return new OrderResponse(
-            order.getId(),
-            order.getOrderNumber(),
-            order.getCustomerId(),
-            items,
-            order.getTotalAmount(),
-            order.getStatus(),
-            order.getPaymentStatus(),
-            order.getCreatedAt());
+        order.getId(),
+        order.getOrderNumber(),
+        order.getCustomerId(),
+        items,
+        order.getTotalAmount(),
+        order.getStatus(),
+        order.getPaymentStatus(),
+        order.getCreatedAt());
   }
 
   @Override
   public OrderResponse cancelOrder(String orderId) {
 
     Order order =
-            orderRepository
-                    .findById(orderId)
-                    .orElseThrow(
-                            () ->
-                                    new OrderNotFoundException(
-                                            "Order not found with id: " + orderId));
+        orderRepository
+            .findById(orderId)
+            .orElseThrow(() -> new OrderNotFoundException("Order not found with id: " + orderId));
 
     OrderStatus currentStatus = order.getStatus();
 
@@ -194,9 +172,7 @@ public class OrderServiceImpl implements OrderService {
 
     if (order.getItems() != null) {
       for (OrderItem item : order.getItems()) {
-        productServiceClient.releaseStock(
-                item.getProductId(),
-                item.getQuantity());
+        productServiceClient.releaseStock(item.getProductId(), item.getQuantity());
       }
     }
 
@@ -212,17 +188,12 @@ public class OrderServiceImpl implements OrderService {
   }
 
   @Override
-  public OrderResponse updateOrderStatus(
-          String orderId,
-          OrderStatus newStatus) {
+  public OrderResponse updateOrderStatus(String orderId, OrderStatus newStatus) {
 
     Order order =
-            orderRepository
-                    .findById(orderId)
-                    .orElseThrow(
-                            () ->
-                                    new OrderNotFoundException(
-                                            "Order not found with id: " + orderId));
+        orderRepository
+            .findById(orderId)
+            .orElseThrow(() -> new OrderNotFoundException("Order not found with id: " + orderId));
 
     validateStatusTransition(order, newStatus);
 
@@ -233,20 +204,16 @@ public class OrderServiceImpl implements OrderService {
     return mapToResponse(updatedOrder);
   }
 
-  private void validateStatusTransition(
-          Order order,
-          OrderStatus next) {
+  private void validateStatusTransition(Order order, OrderStatus next) {
 
     OrderStatus current = order.getStatus();
 
     if (current == OrderStatus.CANCELLED) {
-      throw new IllegalStateException(
-              "Cancelled order cannot be updated");
+      throw new IllegalStateException("Cancelled order cannot be updated");
     }
 
     if (current == OrderStatus.DELIVERED) {
-      throw new IllegalStateException(
-              "Delivered order cannot be updated");
+      throw new IllegalStateException("Delivered order cannot be updated");
     }
 
     if (current == OrderStatus.CREATED) {
@@ -254,8 +221,7 @@ public class OrderServiceImpl implements OrderService {
       if (next == OrderStatus.CONFIRMED) {
 
         if (order.getPaymentStatus() != PaymentStatus.PAID) {
-          throw new IllegalStateException(
-                  "Order cannot be confirmed until payment is completed");
+          throw new IllegalStateException("Order cannot be confirmed until payment is completed");
         }
 
         return;
@@ -265,30 +231,25 @@ public class OrderServiceImpl implements OrderService {
         return;
       }
 
-      throw new IllegalStateException(
-              "CREATED order can only be CONFIRMED or CANCELLED");
+      throw new IllegalStateException("CREATED order can only be CONFIRMED or CANCELLED");
     }
 
     if (current == OrderStatus.CONFIRMED) {
 
-      if (next == OrderStatus.PROCESSING
-              || next == OrderStatus.CANCELLED) {
+      if (next == OrderStatus.PROCESSING || next == OrderStatus.CANCELLED) {
         return;
       }
 
-      throw new IllegalStateException(
-              "CONFIRMED order can only be PROCESSING or CANCELLED");
+      throw new IllegalStateException("CONFIRMED order can only be PROCESSING or CANCELLED");
     }
 
     if (current == OrderStatus.PROCESSING) {
 
-      if (next == OrderStatus.SHIPPED
-              || next == OrderStatus.CANCELLED) {
+      if (next == OrderStatus.SHIPPED || next == OrderStatus.CANCELLED) {
         return;
       }
 
-      throw new IllegalStateException(
-              "PROCESSING order can only be SHIPPED or CANCELLED");
+      throw new IllegalStateException("PROCESSING order can only be SHIPPED or CANCELLED");
     }
 
     if (current == OrderStatus.SHIPPED) {
@@ -297,58 +258,45 @@ public class OrderServiceImpl implements OrderService {
         return;
       }
 
-      throw new IllegalStateException(
-              "SHIPPED order can only be DELIVERED");
+      throw new IllegalStateException("SHIPPED order can only be DELIVERED");
     }
   }
 
   @Override
-  public OrderResponse updatePaymentStatus(
-          String orderId,
-          PaymentStatus paymentStatus) {
+  public OrderResponse updatePaymentStatus(String orderId, PaymentStatus paymentStatus) {
 
     Order order =
-            orderRepository
-                    .findById(orderId)
-                    .orElseThrow(
-                            () ->
-                                    new OrderNotFoundException(
-                                            "Order not found with id: " + orderId));
+        orderRepository
+            .findById(orderId)
+            .orElseThrow(() -> new OrderNotFoundException("Order not found with id: " + orderId));
 
     OrderStatus orderStatus = order.getStatus();
-    PaymentStatus currentPaymentStatus =
-            order.getPaymentStatus();
+    PaymentStatus currentPaymentStatus = order.getPaymentStatus();
 
     if (orderStatus == OrderStatus.CANCELLED) {
-      throw new IllegalStateException(
-              "Payment cannot be updated for a cancelled order");
+      throw new IllegalStateException("Payment cannot be updated for a cancelled order");
     }
 
     if (orderStatus == OrderStatus.DELIVERED) {
-      throw new IllegalStateException(
-              "Payment cannot be updated for a delivered order");
+      throw new IllegalStateException("Payment cannot be updated for a delivered order");
     }
 
     if (currentPaymentStatus == PaymentStatus.PAID) {
-      throw new IllegalStateException(
-              "Paid order payment status cannot be changed");
+      throw new IllegalStateException("Paid order payment status cannot be changed");
     }
 
     if (currentPaymentStatus == PaymentStatus.PENDING) {
 
-      if (paymentStatus != PaymentStatus.PAID
-              && paymentStatus != PaymentStatus.FAILED) {
+      if (paymentStatus != PaymentStatus.PAID && paymentStatus != PaymentStatus.FAILED) {
 
-        throw new IllegalStateException(
-                "PENDING payment can only be changed to PAID or FAILED");
+        throw new IllegalStateException("PENDING payment can only be changed to PAID or FAILED");
       }
     }
 
     if (currentPaymentStatus == PaymentStatus.FAILED) {
 
       if (paymentStatus != PaymentStatus.PAID) {
-        throw new IllegalStateException(
-                "FAILED payment can only be changed to PAID");
+        throw new IllegalStateException("FAILED payment can only be changed to PAID");
       }
     }
 
@@ -362,20 +310,13 @@ public class OrderServiceImpl implements OrderService {
   @Override
   public List<OrderResponse> getMyOrders(String customerId) {
 
-    log.info(
-            "GET MY ORDERS - CUSTOMER ID: {}",
-            customerId);
+    log.info("GET MY ORDERS - CUSTOMER ID: {}", customerId);
 
-    List<Order> orders =
-            orderRepository.findByCustomerId(customerId);
+    List<Order> orders = orderRepository.findByCustomerId(customerId);
 
-    log.info(
-            "GET MY ORDERS - FOUND {} ORDERS",
-            orders.size());
+    log.info("GET MY ORDERS - FOUND {} ORDERS", orders.size());
 
-    return orders.stream()
-            .map(this::mapToResponse)
-            .toList();
+    return orders.stream().map(this::mapToResponse).toList();
   }
 
   @Override
@@ -385,9 +326,7 @@ public class OrderServiceImpl implements OrderService {
 
     List<Order> orders = orderRepository.findAll();
 
-    log.info(
-            "GET ALL ORDERS - FOUND {} ORDERS",
-            orders.size());
+    log.info("GET ALL ORDERS - FOUND {} ORDERS", orders.size());
 
     List<OrderResponse> responses = new ArrayList<>();
 
@@ -395,21 +334,15 @@ public class OrderServiceImpl implements OrderService {
 
       try {
 
-        log.info(
-                "MAPPING ORDER: {}",
-                order.getId());
+        log.info("MAPPING ORDER: {}", order.getId());
 
-        OrderResponse response =
-                mapToResponse(order);
+        OrderResponse response = mapToResponse(order);
 
         responses.add(response);
 
       } catch (Exception exception) {
 
-        log.error(
-                "FAILED TO MAP ORDER: {}",
-                order.getId(),
-                exception);
+        log.error("FAILED TO MAP ORDER: {}", order.getId(), exception);
 
         throw exception;
       }

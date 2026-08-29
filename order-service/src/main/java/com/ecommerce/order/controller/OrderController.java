@@ -7,12 +7,11 @@ import com.ecommerce.order.model.OrderStatus;
 import com.ecommerce.order.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/orders")
@@ -22,12 +21,10 @@ public class OrderController {
   private final OrderService orderService;
 
   @Operation(
-          summary = "Get my orders",
-          description = "Retrieves all orders belonging to the authenticated customer"
-  )
+      summary = "Get my orders",
+      description = "Retrieves all orders belonging to the authenticated customer")
   @GetMapping("/my-orders")
-  public List<OrderResponse> getMyOrders(
-          @RequestHeader("X-Customer-Id") String customerId) {
+  public List<OrderResponse> getMyOrders(@RequestHeader("X-Customer-Id") String customerId) {
     System.out.println("ORDER SERVICE - Customer ID RECEIVED: " + customerId);
     return orderService.getMyOrders(customerId);
   }
@@ -39,8 +36,7 @@ public class OrderController {
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
   public OrderResponse createOrder(
-          @Valid @RequestBody OrderRequest request,
-          @RequestHeader("X-Customer-Id") String customerId) {
+      @Valid @RequestBody OrderRequest request, @RequestHeader("X-Customer-Id") String customerId) {
 
     return orderService.createOrder(request, customerId);
   }
@@ -84,10 +80,7 @@ public class OrderController {
     return ResponseEntity.ok(orderService.updatePaymentStatus(orderId, request.paymentStatus()));
   }
 
-  @Operation(
-          summary = "Get all orders",
-          description = "Retrieves all orders. Admin access only."
-  )
+  @Operation(summary = "Get all orders", description = "Retrieves all orders. Admin access only.")
   @GetMapping("/all")
   public List<OrderResponse> getAllOrders() {
     return orderService.getAllOrders();

@@ -1,13 +1,15 @@
 package com.ecommerce.order.service;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import com.ecommerce.order.dto.OrderItemRequest;
 import com.ecommerce.order.dto.OrderRequest;
 import com.ecommerce.order.dto.OrderResponse;
 import com.ecommerce.order.dto.ProductResponse;
+import com.ecommerce.order.exception.DuplicateOrderItemException;
 import com.ecommerce.order.exception.OrderNotFoundException;
 import com.ecommerce.order.model.Order;
 import com.ecommerce.order.model.OrderItem;
@@ -17,8 +19,10 @@ import com.ecommerce.order.repository.OrderRepository;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -29,245 +33,437 @@ class OrderServiceImplTest {
 
   @Mock private ProductServiceClient productServiceClient;
 
-  private OrderServiceImpl orderService() {
-    return new OrderServiceImpl(orderRepository, productServiceClient);
-  }
+  @InjectMocks private OrderServiceImpl orderService;
 
-  @Test
-  void createOrder_shouldCreateOrderSuccessfully() {
+  private ProductResponse product;
+  private Order order;
 
-    OrderItemRequest itemRequest = new OrderItemRequest("product-001", 2);
+  @BeforeEach
+  void setUp() {
 
-    OrderRequest request = new OrderRequest("CUST-001", List.of(itemRequest));
-
-    ProductResponse product =
+    product =
         new ProductResponse(
-            "product-001",
+            "product-1",
             "PHONE-001",
-            "Samsung Galaxy",
+            "iPhone",
             "Electronics",
             "Smartphone",
-            new BigDecimal("25000"),
+            new BigDecimal("50000"),
             10,
             true);
 
-    when(productServiceClient.getProductById("product-001")).thenReturn(product);
+    order = new Order();
+    order.setId("order-1");
+    order.setOrderNumber("ORD-123");
+    order.setCustomerId("customer-1");
+    order.setStatus(OrderStatus.CREATED);
+    order.setPaymentStatus(PaymentStatus.PENDING);
+  }
 
-    when(productServiceClient.reserveStock("product-001", 2)).thenReturn(product);
+  @Test
+  void createOrderShouldCreateOrderSuccessfully() {
+
+    OrderItemRequest itemRequest = new OrderItemRequest("product-1", 2);
+
+    OrderRequest request = new OrderRequest(List.of(itemRequest));
+
+    when(productServiceClient.getProductById("product-1")).thenReturn(product);
 
     when(orderRepository.save(any(Order.class)))
         .thenAnswer(
             invocation -> {
-              Order order = invocation.getArgument(0);
-              order.setId("order-001");
-              return order;
+              Order saved = invocation.getArgument(0);
+              saved.setId("order-1");
+              saved.setOrderNumber("ORD-123");
+
+              return saved;
             });
 
-    OrderResponse response = orderService().createOrder(request);
+    OrderResponse response = orderService.createOrder(request, "customer-1");
 
-    assertNotNull(response);
-    assertEquals("order-001", response.id());
-    assertEquals("CUST-001", response.customerId());
-    assertEquals(new BigDecimal("50000"), response.totalAmount());
-    assertEquals(OrderStatus.CREATED, response.status());
-    assertEquals(PaymentStatus.PENDING, response.paymentStatus());
+    assertThat(response).isNotNull();
+    assertThat(response.customerId()).isEqualTo("customer-1");
+    assertThat(response.totalAmount()).isEqualByComparingTo("100000");
+    assertThat(response.status()).isEqualTo(OrderStatus.CREATED);
+    assertThat(response.paymentStatus()).isEqualTo(PaymentStatus.PENDING);
 
-    verify(productServiceClient).getProductById("product-001");
+    verify(productServiceClient).getProductById("product-1");
 
-    verify(productServiceClient).reserveStock("product-001", 2);
+    verify(productServiceClient).reserveStock("product-1", 2);
 
     verify(orderRepository).save(any(Order.class));
   }
 
   @Test
-  void getOrderById_shouldReturnOrder() {
+  void createOrderShouldRejectDuplicateProducts() {
 
-    Order order = createOrder();
+    OrderItemRequest item1 = new OrderItemRequest("product-1", 1);
 
-    when(orderRepository.findById("order-001")).thenReturn(Optional.of(order));
+    OrderItemRequest item2 = new OrderItemRequest("product-1", 2);
 
-    OrderResponse response = orderService().getOrderById("order-001");
+    OrderRequest request = new OrderRequest(List.of(item1, item2));
 
-    assertNotNull(response);
-    assertEquals("order-001", response.id());
-    assertEquals("ORD-001", response.orderNumber());
-    assertEquals("CUST-001", response.customerId());
+    assertThatThrownBy(() -> orderService.createOrder(request, "customer-1"))
+        .isInstanceOf(DuplicateOrderItemException.class)
+        .hasMessageContaining("Product cannot appear more than once");
 
-    verify(orderRepository).findById("order-001");
+    verifyNoInteractions(productServiceClient);
+    verifyNoInteractions(orderRepository);
   }
 
   @Test
-  void getOrderById_shouldThrowExceptionWhenNotFound() {
+  void getOrderByIdShouldReturnOrder() {
+
+    OrderItem item =
+        new OrderItem("product-1", "iPhone", new BigDecimal("50000"), 2, new BigDecimal("100000"));
+
+    order.setItems(List.of(item));
+    order.setTotalAmount(new BigDecimal("100000"));
+
+    when(orderRepository.findById("order-1")).thenReturn(Optional.of(order));
+
+    OrderResponse response = orderService.getOrderById("order-1");
+
+    assertThat(response).isNotNull();
+    assertThat(response.id()).isEqualTo("order-1");
+    assertThat(response.orderNumber()).isEqualTo("ORD-123");
+    assertThat(response.customerId()).isEqualTo("customer-1");
+    assertThat(response.items()).hasSize(1);
+
+    verify(orderRepository).findById("order-1");
+  }
+
+  @Test
+  void getOrderByIdShouldThrowWhenOrderDoesNotExist() {
 
     when(orderRepository.findById("invalid-id")).thenReturn(Optional.empty());
 
-    assertThrows(OrderNotFoundException.class, () -> orderService().getOrderById("invalid-id"));
+    assertThatThrownBy(() -> orderService.getOrderById("invalid-id"))
+        .isInstanceOf(OrderNotFoundException.class)
+        .hasMessageContaining("Order not found");
 
     verify(orderRepository).findById("invalid-id");
   }
 
   @Test
-  void getOrderByNumber_shouldReturnOrder() {
+  void getOrderByNumberShouldReturnOrder() {
 
-    Order order = createOrder();
+    when(orderRepository.findByOrderNumber("ORD-123")).thenReturn(Optional.of(order));
 
-    when(orderRepository.findByOrderNumber("ORD-001")).thenReturn(Optional.of(order));
+    OrderResponse response = orderService.getOrderByNumber("ORD-123");
 
-    OrderResponse response = orderService().getOrderByNumber("ORD-001");
+    assertThat(response).isNotNull();
+    assertThat(response.orderNumber()).isEqualTo("ORD-123");
+    assertThat(response.customerId()).isEqualTo("customer-1");
 
-    assertNotNull(response);
-    assertEquals("ORD-001", response.orderNumber());
-
-    verify(orderRepository).findByOrderNumber("ORD-001");
+    verify(orderRepository).findByOrderNumber("ORD-123");
   }
 
   @Test
-  void getOrderByNumber_shouldThrowExceptionWhenNotFound() {
-
-    when(orderRepository.findByOrderNumber("INVALID")).thenReturn(Optional.empty());
-
-    assertThrows(OrderNotFoundException.class, () -> orderService().getOrderByNumber("INVALID"));
-
-    verify(orderRepository).findByOrderNumber("INVALID");
-  }
-
-  @Test
-  void cancelOrder_shouldCancelOrderAndReleaseStock() {
-
-    Order order = createOrder();
-
-    when(orderRepository.findById("order-001")).thenReturn(Optional.of(order));
-
-    when(productServiceClient.releaseStock("product-001", 2)).thenReturn(null);
-
-    when(orderRepository.save(any(Order.class)))
-        .thenAnswer(invocation -> invocation.getArgument(0));
-
-    OrderResponse response = orderService().cancelOrder("order-001");
-
-    assertNotNull(response);
-    assertEquals(OrderStatus.CANCELLED, response.status());
-
-    verify(productServiceClient).releaseStock("product-001", 2);
-
-    verify(orderRepository).save(order);
-  }
-
-  @Test
-  void cancelOrder_shouldThrowExceptionWhenAlreadyCancelled() {
-
-    Order order = createOrder();
-    order.setStatus(OrderStatus.CANCELLED);
-
-    when(orderRepository.findById("order-001")).thenReturn(Optional.of(order));
-
-    assertThrows(IllegalStateException.class, () -> orderService().cancelOrder("order-001"));
-
-    verify(productServiceClient, never()).releaseStock(anyString(), anyInt());
-
-    verify(orderRepository, never()).save(any(Order.class));
-  }
-
-  @Test
-  void updateOrderStatus_shouldUpdateSuccessfully() {
-
-    Order order = new Order();
-
-    order.setId("ORD-001");
-    order.setOrderNumber("ORD-001");
-    order.setCustomerId("CUST-001");
+  void cancelCreatedOrderShouldReleaseStock() {
 
     OrderItem item =
-        new OrderItem(
-            "product-001", "Samsung Galaxy", new BigDecimal("25000"), 2, new BigDecimal("50000"));
+        new OrderItem("product-1", "iPhone", new BigDecimal("50000"), 2, new BigDecimal("100000"));
 
     order.setItems(List.of(item));
-    order.setTotalAmount(new BigDecimal("50000"));
 
-    order.setStatus(OrderStatus.CREATED);
-
-    // Use the successful payment status from your enum
-    order.setPaymentStatus(PaymentStatus.PAID);
-
-    when(orderRepository.findById("ORD-001")).thenReturn(Optional.of(order));
+    when(orderRepository.findById("order-1")).thenReturn(Optional.of(order));
 
     when(orderRepository.save(any(Order.class))).thenReturn(order);
 
-    OrderResponse response = orderService().updateOrderStatus("ORD-001", OrderStatus.CONFIRMED);
+    OrderResponse response = orderService.cancelOrder("order-1");
 
-    assertNotNull(response);
+    assertThat(response.status()).isEqualTo(OrderStatus.CANCELLED);
 
-    assertEquals(OrderStatus.CONFIRMED, response.status());
-
-    assertEquals(OrderStatus.CONFIRMED, order.getStatus());
-
-    verify(orderRepository).findById("ORD-001");
+    verify(productServiceClient).releaseStock("product-1", 2);
 
     verify(orderRepository).save(order);
   }
 
   @Test
-  void updateOrderStatus_shouldRejectInvalidTransition() {
+  void cancelPaidOrderShouldRefundPayment() {
 
-    Order order = createOrder();
+    order.setPaymentStatus(PaymentStatus.PAID);
+    order.setItems(List.of());
 
-    order.setStatus(OrderStatus.CREATED);
+    when(orderRepository.findById("order-1")).thenReturn(Optional.of(order));
 
-    when(orderRepository.findById("order-001")).thenReturn(Optional.of(order));
+    when(orderRepository.save(any(Order.class))).thenReturn(order);
 
-    assertThrows(
-        IllegalStateException.class,
-        () -> orderService().updateOrderStatus("order-001", OrderStatus.SHIPPED));
+    OrderResponse response = orderService.cancelOrder("order-1");
 
-    verify(orderRepository, never()).save(any(Order.class));
+    assertThat(response.status()).isEqualTo(OrderStatus.CANCELLED);
+
+    assertThat(response.paymentStatus()).isEqualTo(PaymentStatus.REFUNDED);
   }
 
   @Test
-  void updateOrderStatus_shouldRejectCancelledOrder() {
+  void cancelAlreadyCancelledOrderShouldThrow() {
 
-    Order order = createOrder();
     order.setStatus(OrderStatus.CANCELLED);
 
-    when(orderRepository.findById("order-001")).thenReturn(Optional.of(order));
+    when(orderRepository.findById("order-1")).thenReturn(Optional.of(order));
 
-    assertThrows(
-        IllegalStateException.class,
-        () -> orderService().updateOrderStatus("order-001", OrderStatus.CONFIRMED));
+    assertThatThrownBy(() -> orderService.cancelOrder("order-1"))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage("Order is already cancelled");
 
     verify(orderRepository, never()).save(any(Order.class));
   }
 
   @Test
-  void updateOrderStatus_shouldRejectDeliveredOrder() {
+  void cancelShippedOrderShouldThrow() {
 
-    Order order = createOrder();
+    order.setStatus(OrderStatus.SHIPPED);
+
+    when(orderRepository.findById("order-1")).thenReturn(Optional.of(order));
+
+    assertThatThrownBy(() -> orderService.cancelOrder("order-1"))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage("Shipped order cannot be cancelled");
+  }
+
+  @Test
+  void cancelDeliveredOrderShouldThrow() {
+
     order.setStatus(OrderStatus.DELIVERED);
 
-    when(orderRepository.findById("order-001")).thenReturn(Optional.of(order));
+    when(orderRepository.findById("order-1")).thenReturn(Optional.of(order));
 
-    assertThrows(
-        IllegalStateException.class,
-        () -> orderService().updateOrderStatus("order-001", OrderStatus.CONFIRMED));
+    assertThatThrownBy(() -> orderService.cancelOrder("order-1"))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage("Delivered order cannot be cancelled");
+  }
+
+  @Test
+  void createdOrderShouldMoveToConfirmedWhenPaymentIsPaid() {
+
+    order.setPaymentStatus(PaymentStatus.PAID);
+
+    when(orderRepository.findById("order-1")).thenReturn(Optional.of(order));
+
+    when(orderRepository.save(any(Order.class))).thenReturn(order);
+
+    OrderResponse response = orderService.updateOrderStatus("order-1", OrderStatus.CONFIRMED);
+
+    assertThat(response.status()).isEqualTo(OrderStatus.CONFIRMED);
+
+    verify(orderRepository).save(order);
+  }
+
+  @Test
+  void createdOrderShouldNotBeConfirmedWhenPaymentIsPending() {
+
+    order.setPaymentStatus(PaymentStatus.PENDING);
+
+    when(orderRepository.findById("order-1")).thenReturn(Optional.of(order));
+
+    assertThatThrownBy(() -> orderService.updateOrderStatus("order-1", OrderStatus.CONFIRMED))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage("Order cannot be confirmed until payment is completed");
 
     verify(orderRepository, never()).save(any(Order.class));
   }
 
-  private Order createOrder() {
+  @Test
+  void confirmedOrderShouldMoveToProcessing() {
 
-    OrderItem item =
-        new OrderItem(
-            "product-001", "Samsung Galaxy", new BigDecimal("25000"), 2, new BigDecimal("50000"));
+    order.setStatus(OrderStatus.CONFIRMED);
 
-    Order order = new Order();
+    when(orderRepository.findById("order-1")).thenReturn(Optional.of(order));
 
-    order.setId("order-001");
-    order.setOrderNumber("ORD-001");
-    order.setCustomerId("CUST-001");
-    order.setItems(List.of(item));
-    order.setTotalAmount(new BigDecimal("50000"));
-    order.setStatus(OrderStatus.CREATED);
+    when(orderRepository.save(any(Order.class))).thenReturn(order);
+
+    OrderResponse response = orderService.updateOrderStatus("order-1", OrderStatus.PROCESSING);
+
+    assertThat(response.status()).isEqualTo(OrderStatus.PROCESSING);
+  }
+
+  @Test
+  void processingOrderShouldMoveToShipped() {
+
+    order.setStatus(OrderStatus.PROCESSING);
+
+    when(orderRepository.findById("order-1")).thenReturn(Optional.of(order));
+
+    when(orderRepository.save(any(Order.class))).thenReturn(order);
+
+    OrderResponse response = orderService.updateOrderStatus("order-1", OrderStatus.SHIPPED);
+
+    assertThat(response.status()).isEqualTo(OrderStatus.SHIPPED);
+  }
+
+  @Test
+  void shippedOrderShouldMoveToDelivered() {
+
+    order.setStatus(OrderStatus.SHIPPED);
+
+    when(orderRepository.findById("order-1")).thenReturn(Optional.of(order));
+
+    when(orderRepository.save(any(Order.class))).thenReturn(order);
+
+    OrderResponse response = orderService.updateOrderStatus("order-1", OrderStatus.DELIVERED);
+
+    assertThat(response.status()).isEqualTo(OrderStatus.DELIVERED);
+  }
+
+  @Test
+  void deliveredOrderShouldNotBeUpdated() {
+
+    order.setStatus(OrderStatus.DELIVERED);
+
+    when(orderRepository.findById("order-1")).thenReturn(Optional.of(order));
+
+    assertThatThrownBy(() -> orderService.updateOrderStatus("order-1", OrderStatus.CANCELLED))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage("Delivered order cannot be updated");
+
+    verify(orderRepository, never()).save(any(Order.class));
+  }
+
+  @Test
+  void cancelledOrderShouldNotBeUpdated() {
+
+    order.setStatus(OrderStatus.CANCELLED);
+
+    when(orderRepository.findById("order-1")).thenReturn(Optional.of(order));
+
+    assertThatThrownBy(() -> orderService.updateOrderStatus("order-1", OrderStatus.PROCESSING))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage("Cancelled order cannot be updated");
+  }
+
+  @Test
+  void confirmedOrderShouldNotMoveDirectlyToShipped() {
+
+    order.setStatus(OrderStatus.CONFIRMED);
+
+    when(orderRepository.findById("order-1")).thenReturn(Optional.of(order));
+
+    assertThatThrownBy(() -> orderService.updateOrderStatus("order-1", OrderStatus.SHIPPED))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage("CONFIRMED order can only be PROCESSING or CANCELLED");
+  }
+
+  @Test
+  void pendingPaymentShouldBecomePaid() {
+
     order.setPaymentStatus(PaymentStatus.PENDING);
 
-    return order;
+    when(orderRepository.findById("order-1")).thenReturn(Optional.of(order));
+
+    when(orderRepository.save(any(Order.class))).thenReturn(order);
+
+    OrderResponse response = orderService.updatePaymentStatus("order-1", PaymentStatus.PAID);
+
+    assertThat(response.paymentStatus()).isEqualTo(PaymentStatus.PAID);
+  }
+
+  @Test
+  void pendingPaymentShouldBecomeFailed() {
+
+    order.setPaymentStatus(PaymentStatus.PENDING);
+
+    when(orderRepository.findById("order-1")).thenReturn(Optional.of(order));
+
+    when(orderRepository.save(any(Order.class))).thenReturn(order);
+
+    OrderResponse response = orderService.updatePaymentStatus("order-1", PaymentStatus.FAILED);
+
+    assertThat(response.paymentStatus()).isEqualTo(PaymentStatus.FAILED);
+  }
+
+  @Test
+  void failedPaymentShouldBecomePaid() {
+
+    order.setPaymentStatus(PaymentStatus.FAILED);
+
+    when(orderRepository.findById("order-1")).thenReturn(Optional.of(order));
+
+    when(orderRepository.save(any(Order.class))).thenReturn(order);
+
+    OrderResponse response = orderService.updatePaymentStatus("order-1", PaymentStatus.PAID);
+
+    assertThat(response.paymentStatus()).isEqualTo(PaymentStatus.PAID);
+  }
+
+  @Test
+  void paidPaymentShouldNotBeChanged() {
+
+    order.setPaymentStatus(PaymentStatus.PAID);
+
+    when(orderRepository.findById("order-1")).thenReturn(Optional.of(order));
+
+    assertThatThrownBy(() -> orderService.updatePaymentStatus("order-1", PaymentStatus.FAILED))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage("Paid order payment status cannot be changed");
+
+    verify(orderRepository, never()).save(any(Order.class));
+  }
+
+  @Test
+  void cancelledOrderPaymentShouldNotBeUpdated() {
+
+    order.setStatus(OrderStatus.CANCELLED);
+
+    when(orderRepository.findById("order-1")).thenReturn(Optional.of(order));
+
+    assertThatThrownBy(() -> orderService.updatePaymentStatus("order-1", PaymentStatus.PAID))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage("Payment cannot be updated for a cancelled order");
+  }
+
+  @Test
+  void deliveredOrderPaymentShouldNotBeUpdated() {
+
+    order.setStatus(OrderStatus.DELIVERED);
+
+    when(orderRepository.findById("order-1")).thenReturn(Optional.of(order));
+
+    assertThatThrownBy(() -> orderService.updatePaymentStatus("order-1", PaymentStatus.PAID))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage("Payment cannot be updated for a delivered order");
+  }
+
+  @Test
+  void getMyOrdersShouldReturnCustomerOrders() {
+
+    order.setItems(List.of());
+    order.setTotalAmount(BigDecimal.ZERO);
+
+    Order order2 = new Order();
+    order2.setId("order-2");
+    order2.setOrderNumber("ORD-456");
+    order2.setCustomerId("customer-1");
+    order2.setStatus(OrderStatus.CREATED);
+    order2.setPaymentStatus(PaymentStatus.PENDING);
+    order2.setItems(List.of());
+    order2.setTotalAmount(BigDecimal.ZERO);
+
+    when(orderRepository.findByCustomerId("customer-1")).thenReturn(List.of(order, order2));
+
+    List<OrderResponse> responses = orderService.getMyOrders("customer-1");
+
+    assertThat(responses).hasSize(2);
+    assertThat(responses.get(0).customerId()).isEqualTo("customer-1");
+    assertThat(responses.get(1).customerId()).isEqualTo("customer-1");
+
+    verify(orderRepository).findByCustomerId("customer-1");
+  }
+
+  @Test
+  void getAllOrdersShouldReturnAllOrders() {
+
+    order.setItems(List.of());
+    order.setTotalAmount(BigDecimal.ZERO);
+
+    when(orderRepository.findAll()).thenReturn(List.of(order));
+
+    List<OrderResponse> responses = orderService.getAllOrders();
+
+    assertThat(responses).hasSize(1);
+    assertThat(responses.get(0).id()).isEqualTo("order-1");
+
+    verify(orderRepository).findAll();
   }
 }

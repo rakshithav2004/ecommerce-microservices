@@ -45,11 +45,8 @@ class AuthServiceImplTest {
             .build();
 
     when(userRepository.existsByEmail("rakshitha@example.com")).thenReturn(false);
-
     when(passwordEncoder.encode("Password@123")).thenReturn("encoded-password");
-
     when(userRepository.save(any(User.class))).thenReturn(savedUser);
-
     when(jwtService.generateToken(savedUser)).thenReturn("jwt-token");
 
     AuthResponse response = authService.register(request);
@@ -61,11 +58,8 @@ class AuthServiceImplTest {
     assertEquals("USER", response.role());
 
     verify(userRepository).existsByEmail("rakshitha@example.com");
-
     verify(passwordEncoder).encode("Password@123");
-
     verify(userRepository).save(any(User.class));
-
     verify(jwtService).generateToken(savedUser);
   }
 
@@ -76,7 +70,6 @@ class AuthServiceImplTest {
         new RegisterRequest("rakshitha", "rakshitha@example.com", "Password@123", "");
 
     when(userRepository.existsByEmail("rakshitha@example.com")).thenReturn(false);
-
     when(passwordEncoder.encode("Password@123")).thenReturn("encoded-password");
 
     User savedUser =
@@ -88,15 +81,14 @@ class AuthServiceImplTest {
             .build();
 
     when(userRepository.save(any(User.class))).thenReturn(savedUser);
-
     when(jwtService.generateToken(savedUser)).thenReturn("jwt-token");
 
     AuthResponse response = authService.register(request);
 
+    assertNotNull(response);
     assertEquals("USER", response.role());
 
     ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-
     verify(userRepository).save(userCaptor.capture());
 
     User user = userCaptor.getValue();
@@ -105,6 +97,9 @@ class AuthServiceImplTest {
     assertEquals("rakshitha@example.com", user.getEmail());
     assertEquals("encoded-password", user.getPassword());
     assertEquals("USER", user.getRole());
+
+    verify(passwordEncoder).encode("Password@123");
+    verify(jwtService).generateToken(savedUser);
   }
 
   @Test
@@ -114,7 +109,6 @@ class AuthServiceImplTest {
         new RegisterRequest("admin", "admin@example.com", "Password@123", "admin");
 
     when(userRepository.existsByEmail("admin@example.com")).thenReturn(false);
-
     when(passwordEncoder.encode("Password@123")).thenReturn("encoded-password");
 
     User savedUser =
@@ -126,7 +120,6 @@ class AuthServiceImplTest {
             .build();
 
     when(userRepository.save(any(User.class))).thenReturn(savedUser);
-
     when(jwtService.generateToken(savedUser)).thenReturn("admin-jwt-token");
 
     AuthResponse response = authService.register(request);
@@ -150,11 +143,8 @@ class AuthServiceImplTest {
         "User with email already exists: " + "rakshitha@example.com", exception.getMessage());
 
     verify(userRepository).existsByEmail("rakshitha@example.com");
-
     verify(userRepository, never()).save(any(User.class));
-
     verify(passwordEncoder, never()).encode(anyString());
-
     verify(jwtService, never()).generateToken(any());
   }
 
@@ -171,10 +161,9 @@ class AuthServiceImplTest {
 
     assertEquals("Role must be USER or ADMIN", exception.getMessage());
 
+    verify(userRepository).existsByEmail("rakshitha@example.com");
     verify(userRepository, never()).save(any(User.class));
-
     verify(passwordEncoder, never()).encode(anyString());
-
     verify(jwtService, never()).generateToken(any());
   }
 
@@ -192,9 +181,7 @@ class AuthServiceImplTest {
             .build();
 
     when(userRepository.findByEmail("rakshitha@example.com")).thenReturn(Optional.of(user));
-
     when(passwordEncoder.matches("Password@123", "encoded-password")).thenReturn(true);
-
     when(jwtService.generateToken(user)).thenReturn("jwt-token");
 
     AuthResponse response = authService.login(request);
@@ -206,9 +193,7 @@ class AuthServiceImplTest {
     assertEquals("USER", response.role());
 
     verify(userRepository).findByEmail("rakshitha@example.com");
-
     verify(passwordEncoder).matches("Password@123", "encoded-password");
-
     verify(jwtService).generateToken(user);
   }
 
@@ -225,9 +210,7 @@ class AuthServiceImplTest {
     assertEquals("Invalid email or password", exception.getMessage());
 
     verify(userRepository).findByEmail("unknown@example.com");
-
     verify(passwordEncoder, never()).matches(anyString(), anyString());
-
     verify(jwtService, never()).generateToken(any());
   }
 
@@ -245,7 +228,6 @@ class AuthServiceImplTest {
             .build();
 
     when(userRepository.findByEmail("rakshitha@example.com")).thenReturn(Optional.of(user));
-
     when(passwordEncoder.matches("WrongPassword", "encoded-password")).thenReturn(false);
 
     IllegalStateException exception =
@@ -254,7 +236,6 @@ class AuthServiceImplTest {
     assertEquals("Invalid email or password", exception.getMessage());
 
     verify(passwordEncoder).matches("WrongPassword", "encoded-password");
-
     verify(jwtService, never()).generateToken(any());
   }
 }

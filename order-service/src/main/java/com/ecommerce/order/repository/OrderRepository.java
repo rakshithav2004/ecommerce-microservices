@@ -1,6 +1,5 @@
 package com.ecommerce.order.repository;
 
-import com.ecommerce.order.dto.OrderResponse;
 import com.ecommerce.order.model.Order;
 import java.util.List;
 import java.util.Optional;
