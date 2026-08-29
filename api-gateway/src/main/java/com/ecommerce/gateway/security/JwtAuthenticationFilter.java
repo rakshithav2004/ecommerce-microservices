@@ -29,7 +29,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     String authHeader = request.getHeader("Authorization");
 
     if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-
       filterChain.doFilter(request, response);
       return;
     }
@@ -43,17 +42,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String role = jwtService.extractRole(token);
 
+        String customerId = jwtService.extractCustomerId(token);
+
         SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + role);
 
         UsernamePasswordAuthenticationToken authentication =
             new UsernamePasswordAuthenticationToken(email, null, List.of(authority));
 
+        authentication.setDetails(customerId);
+
         SecurityContextHolder.getContext().setAuthentication(authentication);
       }
+
     } catch (Exception exception) {
       exception.printStackTrace();
       SecurityContextHolder.clearContext();
     }
+
     filterChain.doFilter(request, response);
   }
 }
