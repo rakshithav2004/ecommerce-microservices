@@ -13,6 +13,15 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        service:
+          - auth-service
+          - product-service
+          - order-service
+          - api-gateway
+          - service-registry
+
     services:
       mongodb:
         image: mongo:8
@@ -23,15 +32,6 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-
-    strategy:
-      matrix:
-        service:
-          - auth-service
-          - product-service
-          - order-service
-          - api-gateway
-          - service-registry
 
     steps:
       - name: Checkout source code
