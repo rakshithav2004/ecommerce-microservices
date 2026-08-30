@@ -8,7 +8,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
-@SpringBootTest
+@SpringBootTest(properties = "jwt.secret=test-secret-key-for-testing-only")
 class SecurityConfigTest {
 
   @Autowired private SecurityFilterChain securityFilterChain;
