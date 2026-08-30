@@ -5,51 +5,43 @@ import jakarta.servlet.http.HttpServletRequestWrapper;
 
 public class CustomerIdRequestWrapper extends HttpServletRequestWrapper {
 
-    private final String customerId;
+  private final String customerId;
 
-    public CustomerIdRequestWrapper(
-            HttpServletRequest request,
-            String customerId) {
-        super(request);
-        this.customerId = customerId;
+  public CustomerIdRequestWrapper(HttpServletRequest request, String customerId) {
+    super(request);
+    this.customerId = customerId;
+  }
+
+  @Override
+  public String getHeader(String name) {
+
+    if ("X-Customer-Id".equalsIgnoreCase(name)) {
+      return customerId;
     }
 
-    @Override
-    public String getHeader(String name) {
+    return super.getHeader(name);
+  }
 
-        if ("X-Customer-Id".equalsIgnoreCase(name)) {
-            return customerId;
-        }
+  @Override
+  public java.util.Enumeration<String> getHeaders(String name) {
 
-        return super.getHeader(name);
+    if ("X-Customer-Id".equalsIgnoreCase(name)) {
+      return java.util.Collections.enumeration(java.util.List.of(customerId));
     }
 
-    @Override
-    public java.util.Enumeration<String> getHeaders(String name) {
+    return super.getHeaders(name);
+  }
 
-        if ("X-Customer-Id".equalsIgnoreCase(name)) {
-            return java.util.Collections.enumeration(
-                    java.util.List.of(customerId)
-            );
-        }
+  @Override
+  public java.util.Enumeration<String> getHeaderNames() {
 
-        return super.getHeaders(name);
+    java.util.List<String> headerNames = java.util.Collections.list(super.getHeaderNames());
+
+    if (!headerNames.stream().anyMatch(name -> "X-Customer-Id".equalsIgnoreCase(name))) {
+
+      headerNames.add("X-Customer-Id");
     }
 
-    @Override
-    public java.util.Enumeration<String> getHeaderNames() {
-
-        java.util.List<String> headerNames =
-                java.util.Collections.list(
-                        super.getHeaderNames()
-                );
-
-        if (!headerNames.stream()
-                .anyMatch(name -> "X-Customer-Id".equalsIgnoreCase(name))) {
-
-            headerNames.add("X-Customer-Id");
-        }
-
-        return java.util.Collections.enumeration(headerNames);
-    }
+    return java.util.Collections.enumeration(headerNames);
+  }
 }

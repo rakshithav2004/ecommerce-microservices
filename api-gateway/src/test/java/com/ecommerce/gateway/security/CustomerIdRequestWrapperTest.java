@@ -13,64 +13,64 @@ import org.junit.jupiter.api.Test;
 
 class CustomerIdRequestWrapperTest {
 
-    private HttpServletRequest request;
+  private HttpServletRequest request;
 
-    @BeforeEach
-    void setUp() {
-        request = mock(HttpServletRequest.class);
+  @BeforeEach
+  void setUp() {
+    request = mock(HttpServletRequest.class);
 
-        when(request.getHeaderNames())
-                .thenReturn(Collections.enumeration(java.util.List.of("Authorization", "Content-Type")));
-    }
+    when(request.getHeaderNames())
+        .thenReturn(Collections.enumeration(java.util.List.of("Authorization", "Content-Type")));
+  }
 
-    @Test
-    void shouldReturnCustomerIdFromHeader() {
+  @Test
+  void shouldReturnCustomerIdFromHeader() {
 
-        CustomerIdRequestWrapper wrapper = new CustomerIdRequestWrapper(request, "customer-123");
+    CustomerIdRequestWrapper wrapper = new CustomerIdRequestWrapper(request, "customer-123");
 
-        assertEquals("customer-123", wrapper.getHeader("X-Customer-Id"));
-    }
+    assertEquals("customer-123", wrapper.getHeader("X-Customer-Id"));
+  }
 
-    @Test
-    void shouldReturnCustomerIdRegardlessOfHeaderCase() {
+  @Test
+  void shouldReturnCustomerIdRegardlessOfHeaderCase() {
 
-        CustomerIdRequestWrapper wrapper = new CustomerIdRequestWrapper(request, "customer-123");
+    CustomerIdRequestWrapper wrapper = new CustomerIdRequestWrapper(request, "customer-123");
 
-        assertEquals("customer-123", wrapper.getHeader("x-customer-id"));
+    assertEquals("customer-123", wrapper.getHeader("x-customer-id"));
 
-        assertEquals("customer-123", wrapper.getHeader("X-CUSTOMER-ID"));
-    }
+    assertEquals("customer-123", wrapper.getHeader("X-CUSTOMER-ID"));
+  }
 
-    @Test
-    void shouldReturnCustomerIdFromGetHeaders() {
+  @Test
+  void shouldReturnCustomerIdFromGetHeaders() {
 
-        CustomerIdRequestWrapper wrapper = new CustomerIdRequestWrapper(request, "customer-123");
+    CustomerIdRequestWrapper wrapper = new CustomerIdRequestWrapper(request, "customer-123");
 
-        Enumeration<String> headers = wrapper.getHeaders("X-Customer-Id");
+    Enumeration<String> headers = wrapper.getHeaders("X-Customer-Id");
 
-        assertTrue(headers.hasMoreElements());
-        assertEquals("customer-123", headers.nextElement());
-    }
+    assertTrue(headers.hasMoreElements());
+    assertEquals("customer-123", headers.nextElement());
+  }
 
-    @Test
-    void shouldIncludeCustomerIdInHeaderNames() {
+  @Test
+  void shouldIncludeCustomerIdInHeaderNames() {
 
-        CustomerIdRequestWrapper wrapper = new CustomerIdRequestWrapper(request, "customer-123");
+    CustomerIdRequestWrapper wrapper = new CustomerIdRequestWrapper(request, "customer-123");
 
-        Enumeration<String> headerNames = wrapper.getHeaderNames();
+    Enumeration<String> headerNames = wrapper.getHeaderNames();
 
-        java.util.List<String> names = Collections.list(headerNames);
+    java.util.List<String> names = Collections.list(headerNames);
 
-        assertTrue(names.stream().anyMatch(name -> "X-Customer-Id".equalsIgnoreCase(name)));
-    }
+    assertTrue(names.stream().anyMatch(name -> "X-Customer-Id".equalsIgnoreCase(name)));
+  }
 
-    @Test
-    void shouldDelegateUnknownHeaderToOriginalRequest() {
+  @Test
+  void shouldDelegateUnknownHeaderToOriginalRequest() {
 
-        when(request.getHeader("Authorization")).thenReturn("Bearer test-token");
+    when(request.getHeader("Authorization")).thenReturn("Bearer test-token");
 
-        CustomerIdRequestWrapper wrapper = new CustomerIdRequestWrapper(request, "customer-123");
+    CustomerIdRequestWrapper wrapper = new CustomerIdRequestWrapper(request, "customer-123");
 
-        assertEquals("Bearer test-token", wrapper.getHeader("Authorization"));
-    }
+    assertEquals("Bearer test-token", wrapper.getHeader("Authorization"));
+  }
 }

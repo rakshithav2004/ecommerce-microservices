@@ -13,27 +13,23 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Component
 public class CustomerIdForwardingFilter extends OncePerRequestFilter {
 
-    @Override
-    protected void doFilterInternal(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain)
-            throws ServletException, IOException {
+  @Override
+  protected void doFilterInternal(
+      HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+      throws ServletException, IOException {
 
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        if (authentication != null
-                && authentication.getDetails() instanceof String customerId
-                && request.getRequestURI().startsWith("/api/v1/orders")) {
+    if (authentication != null
+        && authentication.getDetails() instanceof String customerId
+        && request.getRequestURI().startsWith("/api/v1/orders")) {
 
-            CustomerIdRequestWrapper wrappedRequest =
-                    new CustomerIdRequestWrapper(request, customerId);
+      CustomerIdRequestWrapper wrappedRequest = new CustomerIdRequestWrapper(request, customerId);
 
-            filterChain.doFilter(wrappedRequest, response);
-            return;
-        }
-
-        filterChain.doFilter(request, response);
+      filterChain.doFilter(wrappedRequest, response);
+      return;
     }
+
+    filterChain.doFilter(request, response);
+  }
 }

@@ -17,10 +17,9 @@ class GlobalExceptionHandlerTest {
   void handleIllegalStateException_shouldReturn409WhenUserAlreadyExists() {
 
     IllegalStateException exception =
-            new IllegalStateException("User with email already exists: " + "rakshitha@example.com");
+        new IllegalStateException("User with email already exists: " + "rakshitha@example.com");
 
-    ResponseEntity<Map<String, Object>> response =
-            handler.handleIllegalStateException(exception);
+    ResponseEntity<Map<String, Object>> response = handler.handleIllegalStateException(exception);
 
     assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
 
@@ -31,8 +30,8 @@ class GlobalExceptionHandlerTest {
     assertEquals("USER_ALREADY_EXISTS", response.getBody().get("error"));
 
     assertEquals(
-            "User with email already exists: " + "rakshitha@example.com",
-            response.getBody().get("message"));
+        "User with email already exists: " + "rakshitha@example.com",
+        response.getBody().get("message"));
 
     assertNotNull(response.getBody().get("timestamp"));
   }
@@ -40,11 +39,9 @@ class GlobalExceptionHandlerTest {
   @Test
   void handleIllegalStateException_shouldReturn401() {
 
-    IllegalStateException exception =
-            new IllegalStateException("Invalid email or password");
+    IllegalStateException exception = new IllegalStateException("Invalid email or password");
 
-    ResponseEntity<Map<String, Object>> response =
-            handler.handleIllegalStateException(exception);
+    ResponseEntity<Map<String, Object>> response = handler.handleIllegalStateException(exception);
 
     assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
 
@@ -54,9 +51,7 @@ class GlobalExceptionHandlerTest {
 
     assertEquals("UNAUTHORIZED", response.getBody().get("error"));
 
-    assertEquals(
-            "Invalid email or password",
-            response.getBody().get("message"));
+    assertEquals("Invalid email or password", response.getBody().get("message"));
   }
 
   @Test
@@ -64,39 +59,31 @@ class GlobalExceptionHandlerTest {
 
     IllegalStateException exception = new IllegalStateException();
 
-    ResponseEntity<Map<String, Object>> response =
-            handler.handleIllegalStateException(exception);
+    ResponseEntity<Map<String, Object>> response = handler.handleIllegalStateException(exception);
 
     assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
 
     assertNotNull(response.getBody());
 
-    assertEquals(
-            "UNAUTHORIZED",
-            response.getBody().get("error"));
+    assertEquals("UNAUTHORIZED", response.getBody().get("error"));
 
-    assertEquals(
-            "Invalid authentication request",
-            response.getBody().get("message"));
+    assertEquals("Invalid authentication request", response.getBody().get("message"));
   }
 
   @Test
   void handleValidationErrors_shouldReturn400() {
 
     MethodArgumentNotValidException exception =
-            org.mockito.Mockito.mock(MethodArgumentNotValidException.class);
+        org.mockito.Mockito.mock(MethodArgumentNotValidException.class);
 
     org.springframework.validation.BindingResult bindingResult =
-            org.mockito.Mockito.mock(org.springframework.validation.BindingResult.class);
+        org.mockito.Mockito.mock(org.springframework.validation.BindingResult.class);
 
-    org.mockito.Mockito.when(exception.getBindingResult())
-            .thenReturn(bindingResult);
+    org.mockito.Mockito.when(exception.getBindingResult()).thenReturn(bindingResult);
 
-    org.mockito.Mockito.when(bindingResult.getFieldErrors())
-            .thenReturn(java.util.List.of());
+    org.mockito.Mockito.when(bindingResult.getFieldErrors()).thenReturn(java.util.List.of());
 
-    ResponseEntity<Map<String, Object>> response =
-            handler.handleValidationErrors(exception);
+    ResponseEntity<Map<String, Object>> response = handler.handleValidationErrors(exception);
 
     assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
 
@@ -104,13 +91,9 @@ class GlobalExceptionHandlerTest {
 
     assertEquals(400, response.getBody().get("status"));
 
-    assertEquals(
-            "VALIDATION_FAILED",
-            response.getBody().get("error"));
+    assertEquals("VALIDATION_FAILED", response.getBody().get("error"));
 
-    assertEquals(
-            "Request validation failed",
-            response.getBody().get("message"));
+    assertEquals("Request validation failed", response.getBody().get("message"));
 
     assertNotNull(response.getBody().get("errors"));
   }
@@ -118,28 +101,18 @@ class GlobalExceptionHandlerTest {
   @Test
   void handleGeneralException_shouldReturn500() {
 
-    Exception exception =
-            new Exception("Something went wrong");
+    Exception exception = new Exception("Something went wrong");
 
-    ResponseEntity<Map<String, Object>> response =
-            handler.handleGeneralException(exception);
+    ResponseEntity<Map<String, Object>> response = handler.handleGeneralException(exception);
 
-    assertEquals(
-            HttpStatus.INTERNAL_SERVER_ERROR,
-            response.getStatusCode());
+    assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
 
     assertNotNull(response.getBody());
 
-    assertEquals(
-            500,
-            response.getBody().get("status"));
+    assertEquals(500, response.getBody().get("status"));
 
-    assertEquals(
-            "INTERNAL_SERVER_ERROR",
-            response.getBody().get("error"));
+    assertEquals("INTERNAL_SERVER_ERROR", response.getBody().get("error"));
 
-    assertEquals(
-            "An unexpected error occurred",
-            response.getBody().get("message"));
+    assertEquals("An unexpected error occurred", response.getBody().get("message"));
   }
 }

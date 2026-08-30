@@ -17,9 +17,9 @@ public class SecurityConfig {
   private final SecurityExceptionHandler securityExceptionHandler;
 
   public SecurityConfig(
-          JwtAuthenticationFilter jwtAuthenticationFilter,
-          CustomerIdForwardingFilter customerIdForwardingFilter,
-          SecurityExceptionHandler securityExceptionHandler) {
+      JwtAuthenticationFilter jwtAuthenticationFilter,
+      CustomerIdForwardingFilter customerIdForwardingFilter,
+      SecurityExceptionHandler securityExceptionHandler) {
 
     this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     this.customerIdForwardingFilter = customerIdForwardingFilter;
@@ -30,100 +30,51 @@ public class SecurityConfig {
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
     http.csrf(AbstractHttpConfigurer::disable)
-            .sessionManagement(
-                    session ->
-                            session.sessionCreationPolicy(
-                                    SessionCreationPolicy.STATELESS))
-
-            .authorizeHttpRequests(
-                    auth ->
-                            auth.requestMatchers(
-                                            "/swagger-ui/**",
-                                            "/v3/api-docs/**",
-                                            "/product-service/v3/api-docs",
-                                            "/order-service/v3/api-docs")
-                                    .permitAll()
-
-                                    .requestMatchers(
-                                            HttpMethod.POST,
-                                            "/api/v1/products")
-                                    .hasRole("ADMIN")
-
-                                    .requestMatchers(
-                                            HttpMethod.PUT,
-                                            "/api/v1/products/*")
-                                    .hasRole("ADMIN")
-
-                                    .requestMatchers(
-                                            HttpMethod.DELETE,
-                                            "/api/v1/products/*")
-                                    .hasRole("ADMIN")
-
-                                    .requestMatchers(
-                                            HttpMethod.PUT,
-                                            "/api/v1/products/*/reserve-stock")
-                                    .hasAnyRole("USER", "ADMIN")
-
-                                    .requestMatchers(
-                                            HttpMethod.PUT,
-                                            "/api/v1/products/*/release-stock")
-                                    .hasAnyRole("USER", "ADMIN")
-
-                                    .requestMatchers(
-                                            HttpMethod.GET,
-                                            "/api/v1/products/**")
-                                    .hasAnyRole("USER", "ADMIN")
-
-                                    .requestMatchers(
-                                            HttpMethod.POST,
-                                            "/api/v1/orders")
-                                    .hasAnyRole("USER", "ADMIN")
-
-                                    .requestMatchers(
-                                            HttpMethod.GET,
-                                            "/api/v1/orders/**")
-                                    .hasAnyRole("USER", "ADMIN")
-
-                                    .requestMatchers(
-                                            HttpMethod.POST,
-                                            "/api/v1/orders/*/cancel")
-                                    .hasAnyRole("USER", "ADMIN")
-
-                                    .requestMatchers(
-                                            HttpMethod.PUT,
-                                            "/api/v1/orders/*/status")
-                                    .hasRole("ADMIN")
-
-                                    .requestMatchers(
-                                            HttpMethod.PUT,
-                                            "/api/v1/orders/*/payment")
-                                    .hasRole("ADMIN")
-                                    .requestMatchers(
-                                            HttpMethod.GET,
-                                            "/api/v1/orders/all")
-                                    .hasRole("ADMIN")
-                                    .requestMatchers(
-                                            HttpMethod.GET,
-                                            "/api/v1/orders/my-orders")
-                                    .hasAnyRole("USER", "ADMIN")
-                                    .anyRequest()
-                                    .authenticated())
-
-            .exceptionHandling(
-                    exception ->
-                            exception
-                                    .authenticationEntryPoint(
-                                            securityExceptionHandler)
-                                    .accessDeniedHandler(
-                                            securityExceptionHandler))
-
-            .addFilterBefore(
-                    jwtAuthenticationFilter,
-                    UsernamePasswordAuthenticationFilter.class)
-
-            .addFilterAfter(
-                    customerIdForwardingFilter,
-                    JwtAuthenticationFilter.class);
+        .sessionManagement(
+            session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .authorizeHttpRequests(
+            auth ->
+                auth.requestMatchers(
+                        "/swagger-ui/**",
+                        "/v3/api-docs/**",
+                        "/product-service/v3/api-docs",
+                        "/order-service/v3/api-docs")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.POST, "/api/v1/products")
+                    .hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.PUT, "/api/v1/products/*")
+                    .hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.DELETE, "/api/v1/products/*")
+                    .hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.PUT, "/api/v1/products/*/reserve-stock")
+                    .hasAnyRole("USER", "ADMIN")
+                    .requestMatchers(HttpMethod.PUT, "/api/v1/products/*/release-stock")
+                    .hasAnyRole("USER", "ADMIN")
+                    .requestMatchers(HttpMethod.GET, "/api/v1/products/**")
+                    .hasAnyRole("USER", "ADMIN")
+                    .requestMatchers(HttpMethod.POST, "/api/v1/orders")
+                    .hasAnyRole("USER", "ADMIN")
+                    .requestMatchers(HttpMethod.GET, "/api/v1/orders/**")
+                    .hasAnyRole("USER", "ADMIN")
+                    .requestMatchers(HttpMethod.POST, "/api/v1/orders/*/cancel")
+                    .hasAnyRole("USER", "ADMIN")
+                    .requestMatchers(HttpMethod.PUT, "/api/v1/orders/*/status")
+                    .hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.PUT, "/api/v1/orders/*/payment")
+                    .hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.GET, "/api/v1/orders/all")
+                    .hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.GET, "/api/v1/orders/my-orders")
+                    .hasAnyRole("USER", "ADMIN")
+                    .anyRequest()
+                    .authenticated())
+        .exceptionHandling(
+            exception ->
+                exception
+                    .authenticationEntryPoint(securityExceptionHandler)
+                    .accessDeniedHandler(securityExceptionHandler))
+        .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+        .addFilterAfter(customerIdForwardingFilter, JwtAuthenticationFilter.class);
 
     return http.build();
   }
