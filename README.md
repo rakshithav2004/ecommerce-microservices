@@ -224,6 +224,12 @@ Interactive Swagger documentation for Order Service APIs.
 
 ![Order Swagger](screenshots/order-swagger.png)
 
+### Auth Service — Swagger
+
+Interactive Swagger documentation for Auth Service APIs.
+
+![Auth Swagger](screenshots/authservice-swagger.png)
+
 ### Create Order — Postman
 
 Successful order creation through the API Gateway.
@@ -1359,13 +1365,13 @@ http://localhost:8083/swagger-ui/index.html
 ### Product Service
 
 ```text
-http://localhost:8081/swagger-ui/index.html
+http://localhost:8080/swagger-ui/index.html
 ```
 
 ### Order Service
 
 ```text
-http://localhost:8082/swagger-ui/index.html
+http://localhost:8080/swagger-ui/index.html
 ```
 
 ### API Gateway

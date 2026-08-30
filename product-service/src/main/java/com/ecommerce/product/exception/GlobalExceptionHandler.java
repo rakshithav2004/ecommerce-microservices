@@ -77,4 +77,20 @@ public class GlobalExceptionHandler {
 
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
   }
+
+  @ExceptionHandler(Exception.class)
+  public ResponseEntity<Map<String, Object>> handleGeneralException(Exception ex) {
+
+    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+            .body(
+                    Map.of(
+                            "timestamp",
+                            LocalDateTime.now(),
+                            "status",
+                            HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                            "error",
+                            "INTERNAL_SERVER_ERROR",
+                            "message",
+                            "An unexpected error occurred"));
+  }
 }

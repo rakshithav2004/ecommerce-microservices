@@ -15,34 +15,13 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(IllegalStateException.class)
   public ResponseEntity<Map<String, Object>> handleIllegalStateException(IllegalStateException ex) {
 
-    String message = ex.getMessage();
+    String message = ex.getMessage() != null ? ex.getMessage() : "Invalid authentication request";
 
-    if (message != null && message.toLowerCase().contains("already exists")) {
-
-      return ResponseEntity.status(HttpStatus.CONFLICT)
-          .body(
-              Map.of(
-                  "timestamp",
-                  LocalDateTime.now(),
-                  "status",
-                  HttpStatus.CONFLICT.value(),
-                  "error",
-                  "USER_ALREADY_EXISTS",
-                  "message",
-                  message));
+    if (message.toLowerCase().contains("already exists")) {
+      return buildResponse(HttpStatus.CONFLICT, "USER_ALREADY_EXISTS", message);
     }
 
-    return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-        .body(
-            Map.of(
-                "timestamp",
-                LocalDateTime.now(),
-                "status",
-                HttpStatus.UNAUTHORIZED.value(),
-                "error",
-                "UNAUTHORIZED",
-                "message",
-                message != null ? message : "Invalid authentication credentials"));
+    return buildResponse(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", message);
   }
 
   @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -55,34 +34,37 @@ public class GlobalExceptionHandler {
         .getFieldErrors()
         .forEach(error -> validationErrors.put(error.getField(), error.getDefaultMessage()));
 
-    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-        .body(
-            Map.of(
-                "timestamp",
-                LocalDateTime.now(),
-                "status",
-                HttpStatus.BAD_REQUEST.value(),
-                "error",
-                "VALIDATION_FAILED",
-                "message",
-                "Request validation failed",
-                "errors",
-                validationErrors));
+    Map<String, Object> response = new HashMap<>();
+
+    response.put("timestamp", LocalDateTime.now());
+    response.put("status", HttpStatus.BAD_REQUEST.value());
+    response.put("error", "VALIDATION_FAILED");
+    response.put("message", "Request validation failed");
+    response.put("errors", validationErrors);
+
+    return ResponseEntity.badRequest().body(response);
   }
 
   @ExceptionHandler(Exception.class)
   public ResponseEntity<Map<String, Object>> handleGeneralException(Exception ex) {
 
-    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    return buildResponse(
+        HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", "An unexpected error occurred");
+  }
+
+  private ResponseEntity<Map<String, Object>> buildResponse(
+      HttpStatus status, String error, String message) {
+
+    return ResponseEntity.status(status)
         .body(
             Map.of(
                 "timestamp",
                 LocalDateTime.now(),
                 "status",
-                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                status.value(),
                 "error",
-                "INTERNAL_SERVER_ERROR",
+                error,
                 "message",
-                "An unexpected error occurred"));
+                message));
   }
 }
