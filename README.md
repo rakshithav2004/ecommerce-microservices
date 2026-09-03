@@ -1786,3 +1786,9 @@ This project demonstrates practical experience with:
 Computer Science & Engineering — Data Science
 
 Built as a practical Java Spring Boot microservices project demonstrating backend development, distributed service communication, JWT-based security, service discovery, API Gateway architecture, role-based authorization, and fault-tolerant design.
+
+# 🙌 Thank You
+
+**Thank you for visiting this project!**
+I hope you found it useful and informative. 😊
+
